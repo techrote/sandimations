@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const coreRoot = new URL('../src/core/', import.meta.url);
 const forbidden = [
@@ -28,7 +29,7 @@ async function collectFiles(directory) {
   return files;
 }
 
-const rootPath = coreRoot.pathname;
+const rootPath = fileURLToPath(coreRoot);
 await stat(rootPath);
 const files = await collectFiles(rootPath);
 const violations = [];
