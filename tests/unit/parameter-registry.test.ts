@@ -10,9 +10,9 @@ describe('ParameterRegistry', () => {
   it('exposes stable metadata for the core illustrative parameters', () => {
     const registry = createCoreParameterRegistry();
     expect(registry.list().map((definition) => definition.id)).toEqual([
-      CoreParameterId.seedVariant,
       CoreParameterId.sandEnabled,
       CoreParameterId.sandTieBreak,
+      CoreParameterId.seedVariant,
     ]);
     expect(registry.get(CoreParameterId.sandEnabled)).toMatchObject({
       kind: 'boolean',
