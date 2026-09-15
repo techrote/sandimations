@@ -219,6 +219,10 @@ export function mountApp(
   const skippedCounter = createCounter('Skipped', 'metrics-skipped');
   const blockedCounter = createCounter('Blocked', 'metrics-blocked');
   const workCounter = createCounter('Work units', 'metrics-work');
+  const samplingSelectedCounter = createCounter('Selected now', 'sampling-selected');
+  const samplingDeferredCounter = createCounter('Active deferred', 'sampling-deferred');
+  const samplingCoverageCounter = createCounter('Cycle coverage', 'sampling-coverage');
+  const samplingPatternCounter = createCounter('Sampling pattern', 'sampling-pattern');
   const activeChunksCounter = createCounter('Awake chunks', 'metrics-chunks-active');
   const sleepingChunksCounter = createCounter('Sleeping chunks', 'metrics-chunks-sleeping');
   const wokenChunksCounter = createCounter('Chunks woken', 'metrics-chunks-woken');
@@ -229,6 +233,10 @@ export function mountApp(
     skippedCounter.container,
     blockedCounter.container,
     workCounter.container,
+    samplingSelectedCounter.container,
+    samplingDeferredCounter.container,
+    samplingCoverageCounter.container,
+    samplingPatternCounter.container,
     activeChunksCounter.container,
     sleepingChunksCounter.container,
     wokenChunksCounter.container,
@@ -504,16 +512,30 @@ export function mountApp(
     tickCounter.value.value = String(view.simulation.tick);
     hashCounter.value.value = view.simulation.stateHash;
     viewportState.textContent = `Frame ${view.simulation.frame} · next phase ${view.simulation.phase + 1}/${view.simulation.phaseCount}`;
+    const sampling = view.world.sampling;
     evidenceState.textContent =
-      view.world.latestEvidenceTick === null
-        ? 'No phase evidence yet'
-        : `Latest evidence tick ${view.world.latestEvidenceTick}`;
+      sampling?.lastExecutedPhase !== null && sampling !== null
+        ? `Phase ${sampling.lastExecutedPhase + 1}/${sampling.phaseCount} sampled ${sampling.selectedCellCount}/${sampling.activeCellCount} active cells`
+        : view.world.latestEvidenceTick === null
+          ? 'No phase evidence yet'
+          : `Latest evidence tick ${view.world.latestEvidenceTick}`;
 
     examinedCounter.value.value = String(view.metrics.cells.examined);
     movedCounter.value.value = String(view.metrics.cells.moved);
     skippedCounter.value.value = String(view.metrics.cells.skipped);
     blockedCounter.value.value = String(view.metrics.cells.blocked);
     workCounter.value.value = String(view.metrics.work.total);
+    samplingSelectedCounter.value.value = String(sampling?.selectedCellCount ?? 0);
+    samplingDeferredCounter.value.value = String(
+      sampling?.lastExecutedPhase === null || sampling === null
+        ? 0
+        : sampling.activeCellCount - sampling.selectedCellCount,
+    );
+    samplingCoverageCounter.value.value =
+      sampling === null
+        ? '—'
+        : `${sampling.cells.filter((cell) => cell.lastSelectedTick !== null).length}/${sampling.activeCellCount}`;
+    samplingPatternCounter.value.value = sampling?.pattern ?? '—';
     activeChunksCounter.value.value = String(view.metrics.chunks.active);
     sleepingChunksCounter.value.value = String(view.metrics.chunks.sleeping);
     wokenChunksCounter.value.value = String(view.metrics.chunks.woken);
@@ -568,10 +590,11 @@ export function mountApp(
     );
 
     const evaluated = latestOverlayCount(view, 'evaluated-now');
+    const deferred = latestOverlayCount(view, 'active-not-selected');
     const blocked = latestOverlayCount(view, 'blocked-rejected');
     canvas.setAttribute(
       'aria-label',
-      `Deterministic sand world at frame ${view.simulation.frame}. Latest evidence has ${evaluated} evaluated and ${blocked} blocked cell markers.`,
+      `Deterministic sand world at frame ${view.simulation.frame}. Latest evidence has ${evaluated} evaluated, ${deferred} active in another phase, and ${blocked} blocked cell markers.`,
     );
     renderWorld(canvas, view.world, { enabledOverlays, showGrid });
   }
