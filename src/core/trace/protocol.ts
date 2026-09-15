@@ -106,6 +106,9 @@ export type TraceRecordV1 = Readonly<
 export interface TraceSnapshotV1 {
   readonly version: typeof TRACE_PROTOCOL_VERSION;
   readonly provenance: EvidenceProvenanceV1;
+  readonly firstSequence: number;
+  readonly nextSequence: number;
+  readonly droppedRecords: number;
   readonly records: readonly TraceRecordV1[];
 }
 
