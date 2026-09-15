@@ -7,7 +7,8 @@ import { canonicalJsonStringify } from './canonical-json';
 
 export const SCENARIO_SCHEMA_VERSION = 1 as const;
 
-export type ScenarioSchedulerStrategyV1 = 'phase-clock-v1' | 'chunk-sleep-wake-v1';
+export type ScenarioSchedulerStrategyV1 =
+  'phase-clock-v1' | 'chunk-sleep-wake-v1' | 'phased-sampling-v1';
 
 export interface ScenarioSimulationV1 {
   readonly model: 'falling-sand-v1';
@@ -255,11 +256,15 @@ function normalizePresentation(value: unknown): ScenarioPresentationV1 {
 }
 
 function normalizeSchedulerStrategy(value: unknown): ScenarioSchedulerStrategyV1 {
-  if (value === 'phase-clock-v1' || value === 'chunk-sleep-wake-v1') {
+  if (
+    value === 'phase-clock-v1' ||
+    value === 'chunk-sleep-wake-v1' ||
+    value === 'phased-sampling-v1'
+  ) {
     return value;
   }
   throw new ScenarioValidationError(
-    '$.scheduler.strategy must be "phase-clock-v1" or "chunk-sleep-wake-v1".',
+    '$.scheduler.strategy must be "phase-clock-v1", "chunk-sleep-wake-v1", or "phased-sampling-v1".',
   );
 }
 
