@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('preserves functional speed and deterministic stepping controls', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=chunk-sleep-wake');
 
   await expect(page.getByRole('heading', { level: 1, name: 'Sandimations' })).toBeVisible();
   await expect(page.getByTestId('world-canvas')).toBeVisible();
@@ -58,7 +58,7 @@ test('preserves functional speed and deterministic stepping controls', async ({ 
 });
 
 test('binds parameter controls to registry mutation semantics', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=chunk-sleep-wake');
   await page.getByTestId('play-pause').click();
   await page.getByTestId('reset').click();
 
@@ -109,7 +109,7 @@ test('binds parameter controls to registry mutation semantics', async ({ page })
 test('shows chunks sleep, wake from a local disturbance, and return toward sleep', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=chunk-sleep-wake');
   await page.getByTestId('play-pause').click();
   await page.getByTestId('reset').click();
 
@@ -137,9 +137,90 @@ test('shows chunks sleep, wake from a local disturbance, and return toward sleep
     .toBeGreaterThan(0);
 });
 
+test('phase stepping visibly advances the real sparse sampling scheduler', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('play-pause').click();
+  await page.getByTestId('reset').click();
+
+  await expect(page.getByTestId('provenance-strategy')).toHaveText('phased-sampling-v1');
+  await expect(page.getByTestId('phase-count')).toHaveText('1/4');
+  await expect(page.getByTestId('sampling-pattern')).toHaveText('diagonal-lattice');
+  await expect(page.getByTestId('sampling-selected')).toHaveText('0');
+
+  await page.getByTestId('step-phase').click();
+  await expect(page.getByTestId('frame-count')).toHaveText('0');
+  await expect(page.getByTestId('tick-count')).toHaveText('1');
+  await expect(page.getByTestId('phase-count')).toHaveText('2/4');
+
+  const selected = Number(await page.getByTestId('sampling-selected').textContent());
+  const deferred = Number(await page.getByTestId('sampling-deferred').textContent());
+  const evaluated = Number(await page.getByTestId('overlay-count-evaluated-now').textContent());
+  const visibleDeferred = Number(
+    await page.getByTestId('overlay-count-active-not-selected').textContent(),
+  );
+  expect(selected).toBeGreaterThan(0);
+  expect(deferred).toBeGreaterThan(selected);
+  expect(evaluated).toBe(selected);
+  expect(visibleDeferred).toBe(deferred);
+  await expect(page.getByTestId('sampling-coverage')).toContainText(`/${selected + deferred}`);
+  await expect(page.getByTestId('world-canvas')).toHaveAttribute(
+    'aria-label',
+    new RegExp(`${evaluated} evaluated, ${deferred} active in another phase`),
+  );
+
+  await page.getByTestId('step-phase').click();
+  await expect(page.getByTestId('tick-count')).toHaveText('2');
+  await expect(page.getByTestId('phase-count')).toHaveText('3/4');
+  await expect(page.getByTestId('sampling-coverage')).not.toHaveText(`${selected}/${selected + deferred}`);
+
+  await page.getByTestId('reset').click();
+  await page.getByTestId('step-frame').click();
+  await expect(page.getByTestId('frame-count')).toHaveText('1');
+  await expect(page.getByTestId('tick-count')).toHaveText('4');
+  await expect(page.getByTestId('phase-count')).toHaveText('1/4');
+  await expect(page.getByTestId('sampling-coverage')).toHaveText(`${selected + deferred}/${selected + deferred}`);
+});
+
+test('phased sampling phase count and pattern apply on reset', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('play-pause').click();
+  await page.getByTestId('reset').click();
+
+  const phaseCount = page.getByTestId('parameter-input-scheduler.phased.phase-count');
+  await phaseCount.fill('6');
+  await phaseCount.press('Tab');
+  await expect(page.getByTestId('parameter-pending-scheduler.phased.phase-count')).toContainText(
+    'Pending: 6',
+  );
+
+  const pattern = page.getByTestId('parameter-input-scheduler.phased.pattern');
+  await pattern.selectOption('vertical-stripes');
+  await expect(page.getByTestId('parameter-pending-scheduler.phased.pattern')).toContainText(
+    'Pending: vertical-stripes',
+  );
+  await expect(page.getByTestId('phase-count')).toHaveText('1/4');
+
+  await page.getByTestId('reset').click();
+  await expect(page.getByTestId('phase-count')).toHaveText('1/6');
+  await expect(page.getByTestId('sampling-pattern')).toHaveText('vertical-stripes');
+  await page.getByTestId('step-phase').click();
+  await expect(page.getByTestId('overlay-count-evaluated-now')).not.toHaveText('0');
+  await expect(page.getByTestId('overlay-count-active-not-selected')).not.toHaveText('0');
+});
+
+test('normal-speed phased view advances coherent logical frames', async ({ page }) => {
+  await page.goto('/?scenario=phased-normal');
+  await expect(page.getByTestId('speed-value')).toHaveText('1×');
+  await expect(page.getByTestId('provenance-strategy')).toHaveText('phased-sampling-v1');
+  await expect
+    .poll(async () => Number(await page.getByTestId('frame-count').textContent()))
+    .toBeGreaterThan(1);
+  await expect(page.getByTestId('overlay-count-evaluated-now')).not.toHaveText('0');
+});
+
 test('supports keyboard operation and narrow responsive layout', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('/?scenario=chunk-sleep-wake');
 
   await page.getByTestId('play-pause').click();
   await page.getByTestId('reset').click();
