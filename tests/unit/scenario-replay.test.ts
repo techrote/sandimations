@@ -10,7 +10,7 @@ import {
 } from '../../src/core/scenario/scenario';
 
 describe('scenario replay and runner parameter integration', () => {
-  it('replays ordered parameter/input events identically after serialization', () => {
+  it('replays ordered parameter/input events identically after serialization and reset', () => {
     const base = createDefaultScenario(0x1234abcd);
     const scenario = normalizeScenario({
       ...base,
@@ -49,8 +49,15 @@ describe('scenario replay and runner parameter integration', () => {
       expect(second.getSnapshot()).toEqual(first.getSnapshot());
     }
 
+    const completedHash = first.getStateHash();
     expect(first.getParameterValue(CoreParameterId.sandTieBreak)).toBe('left-first');
     expect(first.getParameterValue(CoreParameterId.sandEnabled)).toBe(false);
+
+    first.reset();
+    expect(first.getParameterValue(CoreParameterId.sandTieBreak)).toBe('seeded-random');
+    expect(first.getParameterValue(CoreParameterId.sandEnabled)).toBe(true);
+    first.stepFrames(8);
+    expect(first.getStateHash()).toBe(completedHash);
   });
 
   it('applies live, next-step, and reset-required mutations at their declared boundaries', () => {
@@ -73,6 +80,13 @@ describe('scenario replay and runner parameter integration', () => {
     runner.requestParameterMutation(CoreParameterId.seedVariant, 0x55aa);
     expect(runner.getParameterValue(CoreParameterId.seedVariant)).toBe(0);
     expect(runner.getSnapshot().parameters.pendingReset).toHaveLength(1);
+    runner.reset();
+    expect(runner.getParameterValue(CoreParameterId.seedVariant)).toBe(0x55aa);
+    expect(runner.getParameterValue(CoreParameterId.sandEnabled)).toBe(true);
+    expect(runner.getParameterValue(CoreParameterId.sandTieBreak)).toBe('seeded-random');
+    expect(runner.getSnapshot().prngState).toBe((scenario.seed ^ 0x55aa) >>> 0);
+
+    runner.stepFrame();
     runner.reset();
     expect(runner.getParameterValue(CoreParameterId.seedVariant)).toBe(0x55aa);
     expect(runner.getSnapshot().prngState).toBe((scenario.seed ^ 0x55aa) >>> 0);
