@@ -1,27 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { createCoreStatus } from '../../src/core/status';
-import { createBootstrapViewModel } from '../../src/presentation/bootstrap-view-model';
+import { SimulationRunner } from '../../src/core/runner/runner';
+import { createDefaultScenario } from '../../src/core/scenario/scenario';
 
-describe('deterministic bootstrap core', () => {
-  it('runs in a Node environment without DOM globals', () => {
+describe('deterministic core boundary', () => {
+  it('runs the real SD-002 runner in Node without DOM globals', () => {
     expect(typeof globalThis.document).toBe('undefined');
+    expect(typeof globalThis.requestAnimationFrame).toBe('undefined');
 
-    const status = createCoreStatus();
+    const runner = new SimulationRunner(createDefaultScenario());
+    runner.stepFrames(3);
 
-    expect(status).toEqual({
-      name: 'sandimations-core',
-      deterministic: true,
-      stage: 'bootstrap',
-    });
-    expect(Object.isFrozen(status)).toBe(true);
-  });
-
-  it('feeds presentation data without giving the core a browser dependency', () => {
-    const status = createCoreStatus();
-    const view = createBootstrapViewModel(status);
-
-    expect(view.coreStatus).toBe('Deterministic core boundary active');
-    expect(view.boundaries).toContain('Presentation adapters');
-    expect(status.stage).toBe('bootstrap');
+    expect(runner.getSnapshot()).toMatchObject({ frame: 3, tick: 3, phase: 0 });
   });
 });

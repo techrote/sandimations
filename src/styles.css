@@ -24,14 +24,34 @@ select {
   font: inherit;
 }
 
+button {
+  min-height: 2.45rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #3f433b;
+  border-radius: 0.35rem;
+  background: #ebe6d9;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #ded7c7;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #363a34;
+  outline-offset: 2px;
+}
+
 #app {
   min-height: 100vh;
 }
 
 .app-shell {
-  width: min(760px, calc(100% - 2rem));
+  width: min(920px, calc(100% - 2rem));
   margin: 0 auto;
-  padding: clamp(3rem, 9vw, 7rem) 0 4rem;
+  padding: clamp(2rem, 6vw, 4.5rem) 0 4rem;
 }
 
 .eyebrow {
@@ -50,38 +70,118 @@ p {
 
 h1 {
   margin: 0;
-  font-size: clamp(2.8rem, 8vw, 5.8rem);
+  font-size: clamp(2.7rem, 8vw, 5.4rem);
   line-height: 0.95;
   letter-spacing: -0.045em;
 }
 
-h2 {
-  margin-top: 2.25rem;
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 .summary {
-  margin: 1.5rem 0 0;
-  font-size: clamp(1.05rem, 2.5vw, 1.35rem);
-  line-height: 1.55;
-}
-
-.status {
-  display: inline-block;
-  margin: 1.75rem 0 0;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid currentColor;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.82rem;
-}
-
-.boundary-list {
-  display: grid;
-  gap: 0.6rem;
-  padding-left: 1.25rem;
+  margin: 1.35rem 0 1.5rem;
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
   line-height: 1.5;
+}
+
+.world-canvas {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  border: 1px solid #363a34;
+  border-radius: 0.45rem;
+  image-rendering: pixelated;
+  background: #11130f;
+}
+
+.controls {
+  display: grid;
+  gap: 0.9rem;
+  width: min(720px, 100%);
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #aaa493;
+  border-radius: 0.45rem;
+  background: #f9f6ed;
+}
+
+.speed-control {
+  display: grid;
+  grid-template-columns: auto minmax(12rem, 1fr) 4.5rem auto;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.speed-control label,
+.speed-control output,
+.counter span,
+.counter output {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.speed-control input[type="range"] {
+  width: 100%;
+}
+
+.speed-control output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.compact-button {
+  min-width: 3rem;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.counters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  width: min(720px, 100%);
+  margin-top: 0.8rem;
+}
+
+.counter {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid #c7c1b2;
+  border-radius: 0.35rem;
+  background: #eee9dc;
+}
+
+.counter span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.counter output {
+  overflow: hidden;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .speed-control {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .speed-control input[type="range"] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .counters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
