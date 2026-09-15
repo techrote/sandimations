@@ -211,7 +211,10 @@ function normalizeEvents(
   for (let index = 1; index < events.length; index += 1) {
     const previous = events[index - 1];
     const current = events[index];
-    if (previous?.tick === current?.tick && previous.order === current.order) {
+    if (previous === undefined || current === undefined) {
+      continue;
+    }
+    if (previous.tick === current.tick && previous.order === current.order) {
       throw new ScenarioValidationError(
         `$.events contains duplicate schedule position tick=${current.tick}, order=${current.order}.`,
       );
