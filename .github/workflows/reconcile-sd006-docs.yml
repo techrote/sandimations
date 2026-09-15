@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: sd-006-chunk-sleep-wake
-      - run: python scripts/reconcile-sd006-docs.py
+      - run: python scripts/reconcile-sd006-docs2.py
       - name: Commit documentation reconciliation
         run: |
           if git diff --quiet; then
