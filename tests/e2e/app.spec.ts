@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('exposes functional speed and deterministic stepping controls', async ({ page }) => {
+test('preserves functional speed and deterministic stepping controls', async ({ page }) => {
   await page.goto('/');
 
   await expect(page.getByRole('heading', { level: 1, name: 'Sandimations' })).toBeVisible();
@@ -29,15 +29,19 @@ test('exposes functional speed and deterministic stepping controls', async ({ pa
   await expect(page.getByTestId('frame-count')).toHaveText('1');
   await expect(page.getByTestId('tick-count')).toHaveText('1');
   await expect(playPause).toHaveText('Play');
+  await expect(page.getByTestId('metrics-examined')).not.toHaveText('0');
+  await expect(page.getByTestId('overlay-count-evaluated-now')).not.toHaveText('0');
 
   await page.getByTestId('reset').click();
   await page.getByTestId('step-frame').click();
   await expect(page.getByTestId('frame-count')).toHaveText('1');
   await expect(page.getByTestId('tick-count')).toHaveText('1');
 
+  await page.getByTestId('reset').click();
+  await page.getByTestId('step-count').fill('3');
   await page.getByTestId('step-frames').click();
-  await expect(page.getByTestId('frame-count')).toHaveText('11');
-  await expect(page.getByTestId('tick-count')).toHaveText('11');
+  await expect(page.getByTestId('frame-count')).toHaveText('3');
+  await expect(page.getByTestId('tick-count')).toHaveText('3');
 
   await page.getByTestId('reset').click();
   await expect(page.getByTestId('frame-count')).toHaveText('0');
@@ -51,4 +55,86 @@ test('exposes functional speed and deterministic stepping controls', async ({ pa
 
   await page.getByTestId('step-frame').click();
   await expect(playPause).toHaveText('Play');
+});
+
+test('binds parameter controls to registry mutation semantics', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('play-pause').click();
+  await page.getByTestId('reset').click();
+
+  const sandEnabled = page.getByTestId('parameter-input-simulation.sand.enabled');
+  await expect(page.getByTestId('parameter-current-simulation.sand.enabled')).toHaveText('On');
+  await sandEnabled.uncheck();
+  await expect(page.getByTestId('parameter-current-simulation.sand.enabled')).toHaveText('Off');
+
+  const tieBreak = page.getByTestId('parameter-input-simulation.sand.tie-break');
+  await tieBreak.selectOption('left-first');
+  await expect(page.getByTestId('parameter-current-simulation.sand.tie-break')).toHaveText(
+    'seeded-random',
+  );
+  await expect(page.getByTestId('parameter-pending-simulation.sand.tie-break')).toContainText(
+    'Pending: left-first',
+  );
+  await page.getByTestId('step-phase').click();
+  await expect(page.getByTestId('parameter-current-simulation.sand.tie-break')).toHaveText(
+    'left-first',
+  );
+  await expect(page.getByTestId('parameter-pending-simulation.sand.tie-break')).not.toContainText(
+    'Pending:',
+  );
+
+  const seedVariant = page.getByTestId('parameter-input-simulation.seed-variant');
+  await seedVariant.fill('42');
+  await seedVariant.press('Tab');
+  await expect(page.getByTestId('parameter-current-simulation.seed-variant')).toHaveText('0');
+  await expect(page.getByTestId('parameter-pending-simulation.seed-variant')).toContainText(
+    'Pending: 42',
+  );
+  await page.getByTestId('reset').click();
+  await expect(page.getByTestId('parameter-current-simulation.seed-variant')).toHaveText('42');
+  await expect(page.getByTestId('parameter-pending-simulation.seed-variant')).not.toContainText(
+    'Pending:',
+  );
+});
+
+test('supports keyboard operation and narrow responsive layout', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  await page.getByTestId('play-pause').click();
+  await page.getByTestId('reset').click();
+  await page.getByRole('heading', { level: 1 }).click();
+
+  await page.keyboard.press('.');
+  await expect(page.getByTestId('frame-count')).toHaveText('1');
+  await page.keyboard.press('f');
+  await expect(page.getByTestId('frame-count')).toHaveText('2');
+  await page.keyboard.press('r');
+  await expect(page.getByTestId('frame-count')).toHaveText('0');
+  await page.keyboard.press('Space');
+  await expect(page.getByTestId('play-pause')).toHaveText('Pause');
+
+  await expect(page.getByTestId('overlay-evaluated-now')).toBeVisible();
+  await expect(page.getByTestId('overlay-active-not-selected')).toBeVisible();
+  await expect(page.getByTestId('overlay-sleeping')).toBeVisible();
+  await expect(page.getByTestId('overlay-newly-woken')).toBeVisible();
+  await expect(page.getByTestId('overlay-blocked-rejected')).toBeVisible();
+
+  const sizes = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(sizes.scroll).toBeLessThanOrEqual(sizes.viewport);
+});
+
+test('honors reduced motion for nonessential presentation animation', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+
+  const animation = await page.locator('.legend-swatch-newly-woken').evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { name: style.animationName, iterations: style.animationIterationCount };
+  });
+  expect(animation.name).toBe('none');
+  expect(animation.iterations).toBe('1');
 });

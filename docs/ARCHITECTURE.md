@@ -151,17 +151,23 @@ Wall-clock timing is intentionally excluded. Browser/CPU/GPU profiling may be ad
 - versioned trace snapshot;
 - deterministic metrics snapshot.
 
-`TeachingModelEvidenceBackendV1` adapts the live TypeScript runner. Future recorded-trace and C++/WASM backends should implement the same contract rather than requiring presentation-specific scheduler logic.
+`TeachingModelEvidenceBackendV1` adapts the live TypeScript runner. It also offers the optional bounded recent-evidence read used by SD-005 live presentation, while `readEvidence()` remains the canonical full snapshot. Future recorded-trace and C++/WASM backends should implement the same contract rather than requiring presentation-specific scheduler logic.
 
 ### Presentation adapter
 
 `PresentationEvidenceAdapterV1` consumes `EvidenceBackendV1` and exposes renderer/inspector-friendly structured evidence without DOM dependencies. It does not infer scheduler decisions.
 
+SD-005 adds an additive lightweight live-read path: a backend may provide a bounded recent trace slice, and the presentation adapter defaults to the newest 512 records. Backends without that optimization remain compatible through the canonical full evidence snapshot. This changes presentation-copy cost only; it does not change trace ordering, retention, metrics, or deterministic state.
+
+`buildAppPresentationViewModel()` combines simulation view state, structured evidence, and the parameter registry into generic renderer/control facts. It maps overlay markers only from explicit trace evidence. Unsupported future states remain absent rather than being inferred.
+
 Reading backend or presentation snapshots is side-effect free and cannot advance physics, alter trace ordering, or change metrics.
 
 ### Renderer/UI
 
-Responsible for drawing, interaction, explanation, accessibility, and responsive layout. It may interpolate visually between fixed simulation states, but interpolation must never mutate or masquerade as simulation state.
+Responsible for drawing, interaction, explanation, accessibility, responsive layout, and presentation-only choices such as grid/overlay visibility. It may interpolate or exaggerate visually between fixed simulation/evidence facts, but presentation state must never mutate or masquerade as simulation/scheduler state.
+
+SD-005 Canvas rendering consumes `WorldPresentationViewModel`; it does not inspect scheduler algorithms. Parameter inputs are generated from registry definitions and route mutations back through `SimulationController`, showing queued values explicitly rather than treating reset-required/next-step changes as already applied. Keyboard controls call the same controller operations as visible buttons. Reduced-motion affects nonessential presentation animation only.
 
 ## Determinism contract
 

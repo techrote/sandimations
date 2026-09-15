@@ -90,6 +90,10 @@ export class SimulationController {
     this.runner.stepFrames(count);
   }
 
+  public requestParameterMutation(id: string, value: unknown): void {
+    this.runner.requestParameterMutation(id, value);
+  }
+
   public reset(): void {
     this.runner.reset();
   }

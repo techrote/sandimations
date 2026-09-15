@@ -9,10 +9,20 @@ import {
 
 export const DEFAULT_TRACE_CAPACITY = 16_384;
 
+export interface RecentTraceWindowV1 {
+  readonly retainedFirstSequence: number;
+  readonly windowFirstSequence: number;
+  readonly nextSequence: number;
+  readonly droppedRecords: number;
+  readonly retainedRecords: number;
+  readonly records: readonly TraceRecordV1[];
+}
+
 export interface TraceSinkV1 {
   reset(provenance: EvidenceProvenanceV1): void;
   record(context: TraceContextV1, event: TraceEventV1): TraceRecordV1;
   getSnapshot(): TraceSnapshotV1;
+  getRecentWindow(limit: number): RecentTraceWindowV1;
 }
 
 function assertNonNegativeInteger(value: number, label: string): void {
@@ -89,17 +99,7 @@ export class InMemoryTraceSinkV1 implements TraceSinkV1 {
   }
 
   public getSnapshot(): TraceSnapshotV1 {
-    const retainedRecords: TraceRecordV1[] = [];
-    const start = this.retained === this.capacity ? this.writeIndex : 0;
-
-    for (let offset = 0; offset < this.retained; offset += 1) {
-      const record = this.records[(start + offset) % this.capacity];
-      if (record === undefined) {
-        throw new Error('Trace ring buffer contains an unexpected empty slot.');
-      }
-      retainedRecords.push(record);
-    }
-
+    const retainedRecords = this.readChronologicalWindow(0, this.retained);
     const firstSequence = retainedRecords[0]?.sequence ?? this.sequence;
     return Object.freeze({
       version: TRACE_PROTOCOL_VERSION,
@@ -109,5 +109,38 @@ export class InMemoryTraceSinkV1 implements TraceSinkV1 {
       droppedRecords: this.droppedRecords,
       records: Object.freeze(retainedRecords),
     });
+  }
+
+  public getRecentWindow(limit: number): RecentTraceWindowV1 {
+    assertNonNegativeInteger(limit, 'Trace slice limit');
+    const count = Math.min(limit, this.retained);
+    const offset = this.retained - count;
+    const records = this.readChronologicalWindow(offset, count);
+    const retainedFirstSequence = this.sequence - this.retained;
+    const windowFirstSequence = records[0]?.sequence ?? this.sequence;
+
+    return Object.freeze({
+      retainedFirstSequence,
+      windowFirstSequence,
+      nextSequence: this.sequence,
+      droppedRecords: this.droppedRecords,
+      retainedRecords: this.retained,
+      records: Object.freeze(records),
+    });
+  }
+
+  private readChronologicalWindow(offset: number, count: number): TraceRecordV1[] {
+    const output: TraceRecordV1[] = [];
+    const retainedStart = this.retained === this.capacity ? this.writeIndex : 0;
+
+    for (let index = 0; index < count; index += 1) {
+      const recordIndex = (retainedStart + offset + index) % this.capacity;
+      const record = this.records[recordIndex];
+      if (record === undefined) {
+        throw new Error('Trace ring buffer contains an unexpected empty slot.');
+      }
+      output.push(record);
+    }
+    return output;
   }
 }

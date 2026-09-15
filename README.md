@@ -6,11 +6,11 @@ The project is intended to make spatial/temporal optimization strategies intuiti
 
 ## Current implementation status
 
-SD-004 completes the deterministic explanatory substrate beneath the future visualization shell. The project now has a deterministic sand teaching model and runner, early time controls, schema-driven parameters, versioned/canonical scenarios, **trace protocol v1**, **deterministic metrics v1**, explicit evidence provenance, and a replaceable backend/presentation evidence boundary.
+SD-005 builds the first reusable explanatory application shell on the completed deterministic/evidence substrate. The browser now combines the Canvas world with trace-backed overlays, deterministic work metrics and provenance, state inspectors, registry-generated parameter controls, recent evidence, and the refined time-control strip.
 
-The teaching model now emits structured evidence from the work it actually performs: phase boundaries plus cell examined/moved/skipped/blocked records from the real sand scan. Deterministic metrics are derived from those same records rather than reconstructed from rendered pixels. Live trace retention is bounded and reports explicit truncation metadata while cumulative metrics remain exact.
+The existing runner semantics are preserved: play/pause, the nonlinear `1/32×` through `16×` speed slider, an obvious `1×` return, single-phase stepping, single-frame stepping, configurable N-frame stepping, and deterministic reset all use the original SD-002 controller/runner path. Keyboard shortcuts provide the same operations without creating a second timing model.
 
-The current browser controls remain the SD-002 vertical slice: play/pause, a speed slider from `1/32×` through `16×`, a direct `1×` button, one-phase/tick stepping, one-frame stepping, `+10` frame stepping, reset, and visible frame/phase/tick/hash counters. SD-005 is the next issue and will build the reusable explanatory UI/inspectors over the evidence contracts that now exist.
+Parameter widgets are generated from the SD-003 registry and visibly distinguish `live`, `next-step`, and `reset-required` behavior, including current versus queued values. Canvas overlays are built only from SD-004 evidence. The generic visual vocabulary already covers evaluated-now, active-other-phase, sleeping/inactive, newly-woken, and blocked/rejected with redundant non-color cues; the current full-scan teaching backend truthfully renders only states it actually emits rather than fabricating future scheduler facts.
 
 Chunk sleep/wake scheduling and real phased-sampling selection are deliberately not implemented yet. The default scenario still has one phase per frame; the phased fixture uses a four-phase clock but explicitly does not select sparse cell subsets until SD-007.
 
@@ -80,6 +80,23 @@ Live trace retention uses a bounded `16,384`-record ring. Snapshots report `firs
 `EvidenceBackendV1` is the replaceable seam between evidence production and presentation. The live TypeScript runner is currently exposed through `TeachingModelEvidenceBackendV1`; later recorded CyberSand traces or a C++/WASM backend can provide the same contract. `PresentationEvidenceAdapterV1` consumes that interface without DOM or backend-specific scheduler logic.
 
 See [`docs/TRACE_PROTOCOL.md`](docs/TRACE_PROTOCOL.md) for event semantics, work-unit definitions, retention, provenance, compatibility/versioning, and the backend/presentation contract.
+
+## Evidence-driven presentation shell
+
+The live presentation path requests a bounded recent evidence slice (512 records by default) rather than cloning the full retained 16,384-record trace on every visual refresh. The canonical full trace snapshot remains available for explicit inspection/export paths, and cumulative deterministic metrics remain independent of retention.
+
+The shell exposes:
+
+- responsive desktop and narrow layouts;
+- Canvas material state plus trace-backed explanatory overlays;
+- overlay visibility and grid presentation toggles that never alter simulation state;
+- frame/phase/tick/hash inspectors;
+- deterministic work counters and backend/strategy/scenario provenance;
+- recent structured evidence summaries;
+- registry-generated parameter controls with mutation timing badges and pending-value status;
+- keyboard operation and reduced-motion handling.
+
+SD-006 and SD-007 can now add chunk sleep/wake and genuine phased sampling through the existing evidence/view-model path instead of introducing scheduler logic into the UI.
 
 ## Quick start on Windows
 
@@ -156,7 +173,7 @@ src/ui/              DOM/canvas rendering and wall-clock playback scheduling
 src/main.ts          composition entry point
 ```
 
-Future scheduler implementations, mature parameter-control UI, comparison orchestration, and external/WASM evidence backends remain governed by `docs/ARCHITECTURE.md` and their own issues.
+Scheduler implementations, comparison orchestration, scenario/timeline tooling, and external/WASM evidence backends remain governed by `docs/ARCHITECTURE.md` and their own issues. SD-005's generic controls/overlays are the presentation substrate for those later features.
 
 The `npm run lint` boundary check rejects DOM access, animation-frame scheduling, hidden randomness, wall-clock reads, and timer scheduling from `src/core/`.
 

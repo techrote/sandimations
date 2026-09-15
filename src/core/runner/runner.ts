@@ -17,6 +17,7 @@ import {
   type TraceContextV1,
   type TraceSnapshotV1,
 } from '../trace/protocol';
+import type { RecentTraceWindowV1 } from '../trace/sink';
 import type { RunnerInput } from './input';
 import { hashDeterministicState } from './state-hash';
 
@@ -174,6 +175,10 @@ export class SimulationRunner {
 
   public getTraceSnapshot(): TraceSnapshotV1 {
     return this.evidence.getTraceSnapshot();
+  }
+
+  public getRecentTraceWindow(limit: number): RecentTraceWindowV1 {
+    return this.evidence.getRecentTraceWindow(limit);
   }
 
   public getMetricsSnapshot(): DeterministicMetricsSnapshotV1 {
