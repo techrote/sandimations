@@ -20,8 +20,6 @@ describe('deterministic state hash', () => {
       phasedSampling: advancedSampling,
     };
 
-    expect(hashDeterministicState(withAdvancedSampling)).not.toBe(
-      hashDeterministicState(before),
-    );
+    expect(hashDeterministicState(withAdvancedSampling)).not.toBe(hashDeterministicState(before));
   });
 });
