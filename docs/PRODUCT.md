@@ -33,26 +33,32 @@ An active world should remain visually coherent while evaluation work is intenti
 
 The central educational point is temporal amortization: not every active cell needs the same expensive attention on every presentation frame for the useful large-scale evolution to remain understandable.
 
+Phased sampling is the signature visualization target. It should be understandable primarily by watching, slowing, pausing, and stepping the mechanism; labels, counters, prose, and mathematics support the visual explanation rather than replace it.
+
 ### Baseline versus optimized
 
 Where meaningful, identical seeded initial states and input events should drive a baseline runner and an optimized runner. The application should expose both physical behavior and computational-work metrics. Any divergence metric must be defined precisely and must not imply semantic equivalence that has not been established.
 
 ## Interaction contract
 
-Time manipulation is foundational, even when a particular release exposes only a subset of controls.
+Time manipulation is foundational and should become functional as early as practical, not merely reserved for the mature presentation shell.
+
+The first usable runner vertical slice should expose a working speed slider plus stepping buttons as soon as the deterministic runner exists. Later UI work should refine and integrate those same controls rather than replace their semantics.
 
 The application architecture must support:
 
 - pause / play;
 - realtime playback;
-- slow motion;
+- slow motion, including genuinely useful deep-slow-motion control resolution;
 - fast-forward;
-- advance one scheduler phase;
+- advance one scheduler phase/tick;
 - advance one logical simulation frame;
 - advance N frames;
 - deterministic reset;
 - deterministic replay from scenario seed and inputs;
 - later checkpoint/rewind support without redesigning the simulation boundary.
+
+`1×` should be easy to identify/restore. The speed-control mapping may be logarithmic, piecewise, or otherwise non-linear if that gives materially better low-speed control, but the resulting runner input must remain an explicit playback-rate value and must not alter fixed-step physics semantics.
 
 Rendering does not advance physics implicitly. Simulation progression is owned by an explicit simulation clock/runner.
 
@@ -108,6 +114,19 @@ A consistent legend should support at least:
 - blocked/rejected update.
 
 Do not encode critical distinctions solely by color. Pattern, border, glyph, brightness, or other redundant cues must be available for accessibility.
+
+### Visual expressiveness and truthfulness
+
+The renderer is encouraged to be visually expressive. Explanatory exaggeration is allowed and often desirable: highlights may be brighter than reality, sampling phases may leave trails, cells or layers may temporarily separate spatially, pulses may last longer than the underlying scheduler event, and transitions may magnify or regroup information to make the mechanism intuitive.
+
+The truthfulness constraint applies to **what facts are being represented**, not to literal aesthetics:
+
+- a cell highlighted as sampled/evaluated in a phase must come from scheduler/trace state saying it was sampled/evaluated;
+- a sleeping cell/chunk must be explicitly sleeping in scheduler state rather than guessed from appearance;
+- accumulated coverage must derive from actual phase history;
+- presentation may transform, emphasize, animate, or spatially reorganize those facts but must not invent scheduler decisions.
+
+In short: **show the mechanism boldly, but derive the claims from the mechanism itself.**
 
 ## Instrumentation
 
