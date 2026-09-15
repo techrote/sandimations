@@ -30,4 +30,32 @@ describe('speed control mapping', () => {
     expect(runner.getPlaybackRate()).toBe(1);
     expect(controller.getViewModel().playbackRateLabel).toBe('1×');
   });
+
+  it('produces the same fixed-step state sequence at different playback rates', () => {
+    const slow = new SimulationController(new SimulationRunner(createDefaultScenario(0xabc123)));
+    const fast = new SimulationController(new SimulationRunner(createDefaultScenario(0xabc123)));
+
+    slow.setSpeedPosition(10);
+    fast.setSpeedPosition(90);
+
+    for (let frame = 0; frame < 24; frame += 1) {
+      slow.stepFrame();
+      fast.stepFrame();
+      expect(slow.getViewModel().stateHash).toBe(fast.getViewModel().stateHash);
+    }
+  });
+
+  it('does not let repeated presentation reads perturb deterministic state', () => {
+    const sparse = new SimulationController(new SimulationRunner(createDefaultScenario(0xfeedbeef)));
+    const noisy = new SimulationController(new SimulationRunner(createDefaultScenario(0xfeedbeef)));
+
+    for (let frame = 0; frame < 16; frame += 1) {
+      sparse.stepFrame();
+      for (let read = 0; read < 17; read += 1) {
+        noisy.getViewModel();
+      }
+      noisy.stepFrame();
+      expect(noisy.getViewModel().stateHash).toBe(sparse.getViewModel().stateHash);
+    }
+  });
 });
