@@ -12,7 +12,16 @@ import { ParameterStore, type ParameterStoreSnapshot } from '../parameters/store
 import { SeededPrng } from '../random/prng';
 import { normalizeScenario, type CoreScenario, type ScenarioEventV1 } from '../scenario/schema';
 import {
+  ChunkSleepWakeScheduler,
+  type ChunkRef,
+  type ChunkSchedulerSnapshot,
+  type ChunkStateSnapshot,
+  type ChunkWakeReason,
+} from '../scheduler/chunk-sleep-wake';
+import {
   createEvidenceProvenanceV1,
+  type CellRefV1,
+  type ChunkRefV1,
   type EvidenceProvenanceV1,
   type TraceContextV1,
   type TraceSnapshotV1,
@@ -31,6 +40,7 @@ export interface RunnerSnapshot {
   readonly prngState: number;
   readonly world: WorldSnapshot;
   readonly parameters: ParameterStoreSnapshot;
+  readonly chunkScheduler: ChunkSchedulerSnapshot | null;
   readonly playing: boolean;
   readonly playbackRate: number;
 }
@@ -42,11 +52,16 @@ function tieBreakMode(value: string): SandTieBreakMode {
   throw new Error(`Unsupported sand tie-break mode: ${value}.`);
 }
 
+function traceChunkRef(chunk: ChunkStateSnapshot | ChunkRef): ChunkRefV1 {
+  return Object.freeze({ id: chunk.id, x: chunk.column, y: chunk.row });
+}
+
 export class SimulationRunner {
   private scenario: CoreScenario;
   private world: LogicalWorld;
   private prng: SeededPrng;
   private parameters: ParameterStore;
+  private chunkScheduler: ChunkSleepWakeScheduler | null = null;
   private readonly resetOverrides = new Map<string, ParameterValue>();
   private readonly evidence: EvidenceRecorderV1;
   private frame = 0;
@@ -65,6 +80,7 @@ export class SimulationRunner {
     this.world = new LogicalWorld(this.scenario.world);
     this.prng = new SeededPrng(this.getEffectiveSeed());
     this.evidence = new EvidenceRecorderV1(this.createProvenance());
+    this.chunkScheduler = this.createChunkScheduler();
   }
 
   public play(): void {
@@ -122,6 +138,11 @@ export class SimulationRunner {
   public applyInput(input: RunnerInput): void {
     if (input.type === 'set-cell') {
       this.world.set(input.x, input.y, input.material);
+      this.chunkScheduler?.wakeAtCell(
+        input.x,
+        input.y,
+        this.parameters.getNumber(CoreParameterId.chunkWakeRadius),
+      );
     }
   }
 
@@ -160,6 +181,7 @@ export class SimulationRunner {
       prngState: this.prng.getState(),
       world: this.world.toSnapshot(),
       parameters: this.parameters.getSnapshot(),
+      chunkScheduler: this.chunkScheduler?.getSnapshot() ?? null,
       playing: this.playing,
       playbackRate: this.playbackRate,
     });
@@ -183,6 +205,10 @@ export class SimulationRunner {
 
   public getMetricsSnapshot(): DeterministicMetricsSnapshotV1 {
     return this.evidence.getMetricsSnapshot();
+  }
+
+  public getChunkSchedulerSnapshot(): ChunkSchedulerSnapshot | null {
+    return this.chunkScheduler?.getSnapshot() ?? null;
   }
 
   private createProvenance(): EvidenceProvenanceV1 {
@@ -211,6 +237,56 @@ export class SimulationRunner {
     this.eventCursor = 0;
     this.playing = false;
     this.evidence.reset(this.createProvenance());
+    this.chunkScheduler = this.createChunkScheduler();
+  }
+
+  private createChunkScheduler(): ChunkSleepWakeScheduler | null {
+    if (this.scenario.scheduler.strategy !== 'chunk-sleep-wake-v1') {
+      return null;
+    }
+
+    return new ChunkSleepWakeScheduler(
+      this.world.width,
+      this.world.height,
+      this.parameters.getNumber(CoreParameterId.chunkSize),
+      {
+        activated: (chunk, reason) => {
+          this.evidence.record(this.currentTraceContext(), {
+            type: 'chunk-activated',
+            chunk: traceChunkRef(chunk),
+            reason,
+          });
+        },
+        slept: (chunk, reason) => {
+          this.evidence.record(this.currentTraceContext(), {
+            type: 'chunk-slept',
+            chunk: traceChunkRef(chunk),
+            reason,
+          });
+        },
+        woken: (chunk, reason, causeChunk, causeCell) => {
+          this.recordChunkWake(chunk, reason, causeChunk, causeCell);
+        },
+      },
+    );
+  }
+
+  private recordChunkWake(
+    chunk: ChunkStateSnapshot,
+    reason: ChunkWakeReason,
+    causeChunk: ChunkRef | null,
+    causeCell: Readonly<{ x: number; y: number }> | null,
+  ): void {
+    const event = {
+      type: 'chunk-woken' as const,
+      chunk: traceChunkRef(chunk),
+      reason,
+      ...(causeChunk === null ? {} : { causeChunk: traceChunkRef(causeChunk) }),
+      ...(causeCell === null
+        ? {}
+        : { causeCell: Object.freeze({ x: causeCell.x, y: causeCell.y }) as CellRefV1 }),
+    };
+    this.evidence.record(this.currentTraceContext(), event);
   }
 
   private getEffectiveSeed(): number {
@@ -226,6 +302,10 @@ export class SimulationRunner {
   }
 
   private advanceOnePhase(): void {
+    if (this.phase === 0) {
+      this.chunkScheduler?.beginFrame();
+    }
+
     const context = this.currentTraceContext();
     this.applyScenarioEventsAtCurrentTick();
     this.parameters.applyNextStep();
@@ -235,12 +315,8 @@ export class SimulationRunner {
     });
 
     const completesFrame = this.phase + 1 >= this.scenario.scheduler.phaseCount;
-    if (completesFrame && this.parameters.getBoolean(CoreParameterId.sandEnabled)) {
-      this.world.stepSand(
-        this.prng,
-        tieBreakMode(this.parameters.getString(CoreParameterId.sandTieBreak)),
-        this.createSandObserver(context),
-      );
+    if (completesFrame) {
+      this.executeFrameWork(context);
     }
 
     this.evidence.record(context, {
@@ -254,6 +330,38 @@ export class SimulationRunner {
       this.phase = 0;
       this.frame += 1;
     }
+  }
+
+  private executeFrameWork(context: TraceContextV1): void {
+    const sandEnabled = this.parameters.getBoolean(CoreParameterId.sandEnabled);
+    const observer = this.createSandObserver(context);
+
+    if (this.chunkScheduler === null) {
+      if (sandEnabled) {
+        this.world.stepSand(
+          this.prng,
+          tieBreakMode(this.parameters.getString(CoreParameterId.sandTieBreak)),
+          observer,
+        );
+      }
+      return;
+    }
+
+    if (sandEnabled) {
+      for (const chunk of this.chunkScheduler.getEvaluableChunks()) {
+        this.world.stepSandRegion(
+          this.prng,
+          tieBreakMode(this.parameters.getString(CoreParameterId.sandTieBreak)),
+          chunk,
+          observer,
+        );
+      }
+    }
+
+    this.chunkScheduler.completeFrame(
+      this.parameters.getNumber(CoreParameterId.chunkSleepDelay),
+      this.parameters.getNumber(CoreParameterId.chunkActivityThreshold),
+    );
   }
 
   private currentTraceContext(): TraceContextV1 {
@@ -297,6 +405,13 @@ export class SimulationRunner {
           material,
           reason,
         });
+        this.chunkScheduler?.noteMovement(
+          fromX,
+          fromY,
+          toX,
+          toY,
+          this.parameters.getNumber(CoreParameterId.chunkWakeRadius),
+        );
       },
     };
   }
