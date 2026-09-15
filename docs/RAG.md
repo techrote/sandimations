@@ -41,21 +41,21 @@ Versioned external trace ingestion and/or C++/WASM adapter proof so the explanat
 
 ## Work graph
 
-Issue numbers are populated after issue creation. Stable work IDs are authoritative identifiers.
+Stable work IDs and their GitHub issues form the execution graph.
 
-| Work ID | Scope | Depends on | Parallelism |
-|---|---|---|---|
-| SD-001 | Bootstrap TypeScript/Vite/test/CI substrate | none | first |
-| SD-002 | Deterministic world, PRNG, runner, time/step controls contract | SD-001 | parallel with SD-003 after interfaces align |
-| SD-003 | Typed parameter registry, scenario schema, serialization | SD-001 | parallel with SD-002 |
-| SD-004 | Trace protocol, metrics, backend/presentation adapter contracts | SD-001; coordinate with SD-002/003 | can proceed once core interfaces stabilize |
-| SD-005 | UI shell, Canvas renderer, legend, inspectors, control framework | SD-002, SD-003, SD-004 | presentation track |
-| SD-006 | Chunk sleep/wake scheduler teaching model + demo | SD-002, SD-004; integrates with SD-005 | can overlap SD-007 |
-| SD-007 | Phased-sampling teaching model + phase-step visualization | SD-002, SD-004; integrates with SD-005 | can overlap SD-006 |
-| SD-008 | Baseline-vs-optimized comparison and divergence/work instrumentation | SD-006, SD-007 | after both demos have deterministic metrics |
-| SD-009 | Scenario presets, timeline, shareable URL state, presentation mode | SD-003, SD-005, SD-006, SD-007 | after stable scenario/UI contracts |
-| SD-010 | Accessibility, performance, browser hardening, static deployment | SD-005 through SD-009 | final release hardening |
-| SD-011 | External trace / future C++-WASM fidelity bridge proof | SD-004, SD-008 | may follow first public release |
+| Work ID | Issue | Scope | Depends on | Parallelism |
+|---|---:|---|---|---|
+| SD-001 | [#1](https://github.com/techrote/sandimations/issues/1) | Bootstrap TypeScript/Vite/test/CI substrate | none | first |
+| SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | Deterministic world, PRNG, runner, time/step controls contract | SD-001 | parallel with SD-003 after interfaces align |
+| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | Typed parameter registry, scenario schema, serialization | SD-001 | parallel with SD-002 |
+| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | Trace protocol, metrics, backend/presentation adapter contracts | SD-001; coordinate with SD-002/003 | once core interfaces stabilize |
+| SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | UI shell, Canvas renderer, legend, inspectors, control framework | SD-002, SD-003, SD-004 | presentation track |
+| SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | Chunk sleep/wake scheduler teaching model + demo | SD-002, SD-004; integrates with SD-003/005 | can overlap SD-007 |
+| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | Phased-sampling teaching model + phase-step visualization | SD-002, SD-004; integrates with SD-003/005 | can overlap SD-006 |
+| SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | Baseline-vs-optimized comparison and divergence/work instrumentation | SD-006, SD-007 | after both demos expose stable metrics |
+| SD-009 | [#9](https://github.com/techrote/sandimations/issues/9) | Scenario presets, timeline, shareable URL state, presentation mode | SD-003, SD-005, SD-006, SD-007; comparison scenarios may use SD-008 | after stable scenario/UI contracts |
+| SD-010 | [#10](https://github.com/techrote/sandimations/issues/10) | Accessibility, performance, browser hardening, static deployment | SD-005 through SD-009 | final release hardening |
+| SD-011 | [#11](https://github.com/techrote/sandimations/issues/11) | External trace / future C++-WASM fidelity bridge proof | SD-004, SD-008 | may follow first public release |
 
 ## Concurrency rules
 
@@ -66,6 +66,7 @@ Issue numbers are populated after issue creation. Stable work IDs are authoritat
 - SD-005 should establish generic controls/overlays and must not hard-code either demo's algorithm.
 - SD-008 requires both scheduler stories to expose stable metrics.
 - SD-009 must not become a second state-management system; URL/preset state serializes canonical scenario/parameter/view models.
+- SD-010 is hardening, not a feature bucket; material new features discovered there should become explicit follow-ups.
 
 ## Global acceptance invariants
 
@@ -165,16 +166,16 @@ For every issue: implement completely, test, reconcile docs, open a focused PR, 
 
 | Work ID | GitHub issue | State | Notes |
 |---|---:|---|---|
-| SD-001 | TBD | planned | Bootstrap |
-| SD-002 | TBD | planned | Deterministic runner/time |
-| SD-003 | TBD | planned | Parameters/scenarios |
-| SD-004 | TBD | planned | Trace/metrics/adapters |
-| SD-005 | TBD | planned | UI/presentation shell |
-| SD-006 | TBD | planned | Sleep/wake demo |
-| SD-007 | TBD | planned | Phased sampling demo |
-| SD-008 | TBD | planned | Comparison mode |
-| SD-009 | TBD | planned | Presets/timeline/share |
-| SD-010 | TBD | planned | Hardening/deploy |
-| SD-011 | TBD | planned | Fidelity bridge |
+| SD-001 | [#1](https://github.com/techrote/sandimations/issues/1) | ready | Bootstrap; first execution target |
+| SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | planned | Deterministic runner/time |
+| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | planned | Parameters/scenarios |
+| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | planned | Trace/metrics/adapters |
+| SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | planned | UI/presentation shell |
+| SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | planned | Sleep/wake demo |
+| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | planned | Phased sampling demo |
+| SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | planned | Comparison mode |
+| SD-009 | [#9](https://github.com/techrote/sandimations/issues/9) | planned | Presets/timeline/share |
+| SD-010 | [#10](https://github.com/techrote/sandimations/issues/10) | planned | Hardening/deploy |
+| SD-011 | [#11](https://github.com/techrote/sandimations/issues/11) | planned | Fidelity bridge |
 
-Update this ledger when issue numbering or material dependency/status changes. Do not use it as a substitute for issue-specific acceptance criteria.
+Update this ledger when material dependency/status changes. Do not use it as a substitute for issue-specific acceptance criteria.
