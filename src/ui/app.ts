@@ -7,11 +7,7 @@ import type { SimulationController } from '../presentation/simulation-controller
 import { startPlaybackDriver } from './playback-driver';
 import { renderWorld } from './world-canvas';
 
-function createButton(
-  label: string,
-  testId: string,
-  onClick: () => void,
-): HTMLButtonElement {
+function createButton(label: string, testId: string, onClick: () => void): HTMLButtonElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = label;
@@ -111,13 +107,7 @@ export function mountApp(root: HTMLElement, controller: SimulationController): (
 
   const buttonRow = document.createElement('div');
   buttonRow.className = 'button-row';
-  buttonRow.append(
-    playButton,
-    stepPhaseButton,
-    stepFrameButton,
-    stepFramesButton,
-    resetButton,
-  );
+  buttonRow.append(playButton, stepPhaseButton, stepFrameButton, stepFramesButton, resetButton);
 
   controlSection.append(speedBlock, buttonRow);
 
