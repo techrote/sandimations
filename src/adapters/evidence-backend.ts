@@ -3,6 +3,7 @@ import type { WorldSnapshot } from '../core/model/world';
 import type { ParameterStoreSnapshot } from '../core/parameters/store';
 import type { SimulationRunner } from '../core/runner/runner';
 import type { ChunkLifecycleState } from '../core/scheduler/chunk-sleep-wake';
+import type { PhasedSamplingPattern } from '../core/scheduler/phased-sampling';
 import {
   TRACE_PROTOCOL_VERSION,
   type EvidenceProvenanceV1,
@@ -35,6 +36,22 @@ export interface SchedulerChunkStateV1 {
   readonly reason: string | null;
 }
 
+export interface SchedulerSamplingCellV1 {
+  readonly x: number;
+  readonly y: number;
+  readonly assignedPhase: number;
+  readonly lastSelectedTick: number | null;
+}
+
+export interface SchedulerSamplingStateV1 {
+  readonly pattern: PhasedSamplingPattern;
+  readonly lastExecutedPhase: number | null;
+  readonly lastExecutedTick: number | null;
+  readonly activeCellCount: number;
+  readonly selectedCellCount: number;
+  readonly cells: readonly SchedulerSamplingCellV1[];
+}
+
 export interface SchedulerEvidenceStateV1 {
   readonly strategyId: string;
   readonly frame: number;
@@ -42,6 +59,7 @@ export interface SchedulerEvidenceStateV1 {
   readonly tick: number;
   readonly phaseCount: number;
   readonly chunks: readonly SchedulerChunkStateV1[];
+  readonly sampling?: SchedulerSamplingStateV1 | null;
 }
 
 export interface BackendEvidenceSnapshotV1 {
@@ -98,6 +116,7 @@ function schedulerState(
 ): SchedulerEvidenceStateV1 {
   const snapshot = runner.getSnapshot();
   const chunks = snapshot.chunkScheduler?.chunks ?? [];
+  const sampling = snapshot.phasedSampling;
   return Object.freeze({
     strategyId: provenance.strategyId,
     frame: snapshot.frame,
@@ -120,6 +139,26 @@ function schedulerState(
         }),
       ),
     ),
+    sampling:
+      sampling === null
+        ? null
+        : Object.freeze({
+            pattern: sampling.pattern,
+            lastExecutedPhase: sampling.lastExecutedPhase,
+            lastExecutedTick: sampling.lastExecutedTick,
+            activeCellCount: sampling.activeCellCount,
+            selectedCellCount: sampling.selectedCellCount,
+            cells: Object.freeze(
+              sampling.cells.map((cell) =>
+                Object.freeze({
+                  x: cell.x,
+                  y: cell.y,
+                  assignedPhase: cell.assignedPhase,
+                  lastSelectedTick: cell.lastSelectedTick,
+                }),
+              ),
+            ),
+          }),
   });
 }
 
