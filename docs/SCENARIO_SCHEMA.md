@@ -26,7 +26,7 @@ Presentation defaults are intentionally non-authoritative: changing them must no
 
 Canonicalization guarantees that semantically equivalent supported input data produces the same serialized representation after normalization. Scripted events are sorted by `(tick, order)` and duplicate schedule positions are rejected.
 
-No wall-clock timestamps, generated UUIDs, random IDs, or browser state are introduced during normalization or serialization.
+No wall-clock timestamps, generated UUIDs, random IDs, browser locale ordering, or browser state are introduced during normalization or serialization. Parameter definitions are ordered with a locale-independent code-point comparator.
 
 ## Parameter registry
 
@@ -54,7 +54,7 @@ Unknown IDs and invalid values are rejected. Later UI controls should consume th
 
 ### `live`
 
-The validated value becomes current immediately.
+The validated value becomes current immediately for the running simulation.
 
 ### `next-step`
 
@@ -62,7 +62,9 @@ The mutation is queued in request order and becomes current at the next schedule
 
 ### `reset-required`
 
-The mutation is queued until the runner receives an explicit reset. Reset applies queued reset-required values in request order, then reconstructs deterministic world/PRNG/counters with the resulting configuration.
+The mutation is queued until the runner receives an explicit reset. At reset, queued reset-required values are folded into the runner's current reset configuration in deterministic request order. The parameter store is then reconstructed from the scenario's initial parameter values plus those reset-required overrides before world/PRNG/counters are rebuilt.
+
+This distinction is deliberate: live and next-step mutations are runtime experiments and are cleared by reset, while already-applied reset-required configuration persists across later resets until a new scenario is loaded. That guarantees that resetting a scenario with scripted live/next-step events starts from the same parameter baseline and reproduces the same event history.
 
 Pending mutations are part of deterministic runner state and therefore contribute to state hashing.
 
@@ -81,7 +83,7 @@ Reset-required parameters are deliberately forbidden in scripted mutation events
 
 - Readers reject unsupported schema versions rather than guessing semantics.
 - Additive metadata that does not change deterministic meaning should be introduced only with explicit validation/default behavior.
-- Any incompatible field meaning, event timing change, material encoding change, or deterministic interpretation change requires a new schema version.
+- Any incompatible field meaning, event timing change, material encoding change, parameter default/ordering change that affects deterministic behavior, or other deterministic interpretation change requires a new schema version.
 - Old-version migration, when introduced, should be an explicit pure conversion into the current normalized representation before execution.
 - Unknown parameter IDs are rejected in version 1 to prevent silent typos from changing scenario meaning.
 
