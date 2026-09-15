@@ -1,6 +1,12 @@
-import { LogicalWorld, type WorldSnapshot } from '../model/world';
+import { LogicalWorld, type SandTieBreakMode, type WorldSnapshot } from '../model/world';
+import {
+  CoreParameterId,
+  type ParameterValue,
+} from '../parameters/definitions';
+import { createCoreParameterRegistry, type ParameterRegistry } from '../parameters/registry';
+import { ParameterStore, type ParameterStoreSnapshot } from '../parameters/store';
 import { SeededPrng } from '../random/prng';
-import type { CoreScenario } from '../scenario/scenario';
+import { normalizeScenario, type CoreScenario, type ScenarioEventV1 } from '../scenario/schema';
 import type { RunnerInput } from './input';
 import { hashDeterministicState } from './state-hash';
 
@@ -13,41 +19,38 @@ export interface RunnerSnapshot {
   readonly phaseCount: number;
   readonly prngState: number;
   readonly world: WorldSnapshot;
+  readonly parameters: ParameterStoreSnapshot;
   readonly playing: boolean;
   readonly playbackRate: number;
 }
 
-function copyScenario(scenario: CoreScenario): CoreScenario {
-  if (scenario.id.trim().length === 0) {
-    throw new RangeError('Scenario id must not be empty.');
+function tieBreakMode(value: string): SandTieBreakMode {
+  if (value === 'seeded-random' || value === 'left-first' || value === 'right-first') {
+    return value;
   }
-  if (!Number.isInteger(scenario.phaseCount) || scenario.phaseCount < 1) {
-    throw new RangeError('Scenario phaseCount must be a positive integer.');
-  }
-
-  const world = new LogicalWorld(scenario.world).toSnapshot();
-  return Object.freeze({
-    id: scenario.id,
-    seed: scenario.seed >>> 0,
-    phaseCount: scenario.phaseCount,
-    world,
-  });
+  throw new Error(`Unsupported sand tie-break mode: ${value}.`);
 }
 
 export class SimulationRunner {
   private scenario: CoreScenario;
   private world: LogicalWorld;
   private prng: SeededPrng;
+  private parameters: ParameterStore;
   private frame = 0;
   private phase = 0;
   private tick = 0;
+  private eventCursor = 0;
   private playing = false;
   private playbackRate = 1;
 
-  public constructor(scenario: CoreScenario) {
-    this.scenario = copyScenario(scenario);
+  public constructor(
+    scenario: CoreScenario,
+    private readonly registry: ParameterRegistry = createCoreParameterRegistry(),
+  ) {
+    this.scenario = normalizeScenario(scenario, this.registry);
+    this.parameters = new ParameterStore(this.registry, this.scenario.parameters);
     this.world = new LogicalWorld(this.scenario.world);
-    this.prng = new SeededPrng(this.scenario.seed);
+    this.prng = new SeededPrng(this.getEffectiveSeed());
   }
 
   public play(): void {
@@ -108,18 +111,23 @@ export class SimulationRunner {
     }
   }
 
+  public requestParameterMutation(id: string, value: unknown): void {
+    this.parameters.requestMutation(id, value);
+  }
+
+  public getParameterValue(id: string): ParameterValue {
+    return this.parameters.get(id);
+  }
+
   public reset(): void {
-    this.world = new LogicalWorld(this.scenario.world);
-    this.prng = new SeededPrng(this.scenario.seed);
-    this.frame = 0;
-    this.phase = 0;
-    this.tick = 0;
-    this.playing = false;
+    this.parameters.applyResetRequired();
+    this.rebuildDeterministicState();
   }
 
   public loadScenario(scenario: CoreScenario): void {
-    this.scenario = copyScenario(scenario);
-    this.reset();
+    this.scenario = normalizeScenario(scenario, this.registry);
+    this.parameters = new ParameterStore(this.registry, this.scenario.parameters);
+    this.rebuildDeterministicState();
   }
 
   public getSnapshot(): RunnerSnapshot {
@@ -129,9 +137,10 @@ export class SimulationRunner {
       frame: this.frame,
       phase: this.phase,
       tick: this.tick,
-      phaseCount: this.scenario.phaseCount,
+      phaseCount: this.scenario.scheduler.phaseCount,
       prngState: this.prng.getState(),
       world: this.world.toSnapshot(),
+      parameters: this.parameters.getSnapshot(),
       playing: this.playing,
       playbackRate: this.playbackRate,
     });
@@ -139,6 +148,21 @@ export class SimulationRunner {
 
   public getStateHash(): string {
     return hashDeterministicState(this.getSnapshot());
+  }
+
+  private rebuildDeterministicState(): void {
+    this.world = new LogicalWorld(this.scenario.world);
+    this.prng = new SeededPrng(this.getEffectiveSeed());
+    this.frame = 0;
+    this.phase = 0;
+    this.tick = 0;
+    this.eventCursor = 0;
+    this.playing = false;
+  }
+
+  private getEffectiveSeed(): number {
+    const variant = this.parameters.getNumber(CoreParameterId.seedVariant) >>> 0;
+    return (this.scenario.seed ^ variant) >>> 0;
   }
 
   private advanceToNextFrame(): void {
@@ -149,13 +173,39 @@ export class SimulationRunner {
   }
 
   private advanceOnePhase(): void {
+    this.applyScenarioEventsAtCurrentTick();
+    this.parameters.applyNextStep();
     this.tick += 1;
     this.phase += 1;
 
-    if (this.phase >= this.scenario.phaseCount) {
+    if (this.phase >= this.scenario.scheduler.phaseCount) {
       this.phase = 0;
-      this.world.stepSand(this.prng);
+      if (this.parameters.getBoolean(CoreParameterId.sandEnabled)) {
+        this.world.stepSand(
+          this.prng,
+          tieBreakMode(this.parameters.getString(CoreParameterId.sandTieBreak)),
+        );
+      }
       this.frame += 1;
     }
+  }
+
+  private applyScenarioEventsAtCurrentTick(): void {
+    while (this.eventCursor < this.scenario.events.length) {
+      const event = this.scenario.events[this.eventCursor];
+      if (event === undefined || event.tick !== this.tick) {
+        break;
+      }
+      this.applyScenarioEvent(event);
+      this.eventCursor += 1;
+    }
+  }
+
+  private applyScenarioEvent(event: ScenarioEventV1): void {
+    if (event.type === 'input') {
+      this.applyInput(event.input);
+      return;
+    }
+    this.parameters.requestMutation(event.parameterId, event.value);
   }
 }

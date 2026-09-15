@@ -1,4 +1,5 @@
 import type { WorldSnapshot } from '../model/world';
+import type { ParameterMutationRecord, ParameterStoreSnapshot } from '../parameters/store';
 
 export interface HashableRunnerState {
   readonly scenarioId: string;
@@ -9,6 +10,7 @@ export interface HashableRunnerState {
   readonly phaseCount: number;
   readonly prngState: number;
   readonly world: WorldSnapshot;
+  readonly parameters: ParameterStoreSnapshot;
 }
 
 function fnv1a(text: string): string {
@@ -18,6 +20,15 @@ function fnv1a(text: string): string {
     hash = Math.imul(hash, 0x01000193) >>> 0;
   }
   return hash.toString(16).padStart(8, '0');
+}
+
+function mutationPayload(mutation: ParameterMutationRecord): string {
+  return [
+    mutation.sequence,
+    mutation.parameterId,
+    JSON.stringify(mutation.value),
+    mutation.mode,
+  ].join(':');
 }
 
 export function hashDeterministicState(state: HashableRunnerState): string {
@@ -31,7 +42,21 @@ export function hashDeterministicState(state: HashableRunnerState): string {
     `prng=${state.prngState >>> 0}`,
     `world=${state.world.width}x${state.world.height}`,
     `cells=${state.world.cells.join(',')}`,
-  ].join('|');
+  ];
 
-  return fnv1a(canonical);
+  if (state.parameters.nonDefaultValues.length > 0) {
+    canonical.push(
+      `params=${state.parameters.nonDefaultValues
+        .map((entry) => `${entry.id}:${JSON.stringify(entry.value)}`)
+        .join(',')}`,
+    );
+  }
+  if (state.parameters.pendingNextStep.length > 0) {
+    canonical.push(`next=${state.parameters.pendingNextStep.map(mutationPayload).join(',')}`);
+  }
+  if (state.parameters.pendingReset.length > 0) {
+    canonical.push(`reset=${state.parameters.pendingReset.map(mutationPayload).join(',')}`);
+  }
+
+  return fnv1a(canonical.join('|'));
 }
