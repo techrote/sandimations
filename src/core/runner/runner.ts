@@ -33,6 +33,7 @@ export class SimulationRunner {
   private world: LogicalWorld;
   private prng: SeededPrng;
   private parameters: ParameterStore;
+  private readonly resetOverrides = new Map<string, ParameterValue>();
   private frame = 0;
   private phase = 0;
   private tick = 0;
@@ -117,13 +118,18 @@ export class SimulationRunner {
   }
 
   public reset(): void {
-    this.parameters.applyResetRequired();
+    const pendingReset = this.parameters.getSnapshot().pendingReset;
+    for (const mutation of pendingReset) {
+      this.resetOverrides.set(mutation.parameterId, mutation.value);
+    }
+    this.rebuildParameters();
     this.rebuildDeterministicState();
   }
 
   public loadScenario(scenario: CoreScenario): void {
     this.scenario = normalizeScenario(scenario, this.registry);
-    this.parameters = new ParameterStore(this.registry, this.scenario.parameters);
+    this.resetOverrides.clear();
+    this.rebuildParameters();
     this.rebuildDeterministicState();
   }
 
@@ -145,6 +151,14 @@ export class SimulationRunner {
 
   public getStateHash(): string {
     return hashDeterministicState(this.getSnapshot());
+  }
+
+  private rebuildParameters(): void {
+    const values: Record<string, ParameterValue> = { ...this.scenario.parameters };
+    for (const [id, value] of this.resetOverrides) {
+      values[id] = value;
+    }
+    this.parameters = new ParameterStore(this.registry, values);
   }
 
   private rebuildDeterministicState(): void {
