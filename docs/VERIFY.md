@@ -73,6 +73,8 @@ A renderer need not be pixel-identical across all platforms. Prefer semantic/bro
 
 Use screenshot/visual regression tests selectively for stable explanatory layouts, not as a substitute for state assertions.
 
+SD-005 browser coverage additionally verifies preserved speed/phase/frame/N-frame/reset semantics, registry-driven live/next-step/reset-required controls, keyboard operation, no horizontal overflow at a representative narrow viewport, visible generic overlay controls, and reduced-motion suppression of nonessential overlay animation. Unit coverage verifies that app overlays and pending parameter states come from evidence/registry contracts and that the live presentation adapter prefers the bounded recent-evidence path when available.
+
 ## Comparison-mode tests
 
 Baseline and optimized runners must receive identical canonical scenario/input streams. Test that metrics identify their provenance and that divergence is defined/tested rather than inferred from screenshots.
