@@ -48,7 +48,7 @@ Owns progression. It converts explicit commands into deterministic simulation ad
 
 Minimum command vocabulary:
 
-- `play(rate)` / `pause()`;
+- `play()` / `pause()` plus explicit playback-rate state;
 - `stepPhase()`;
 - `stepFrame()`;
 - `stepFrames(n)`;
@@ -58,6 +58,19 @@ Minimum command vocabulary:
 - apply parameter mutation according to its declared semantics.
 
 A renderer call must never advance the model implicitly.
+
+#### SD-002 concrete semantics
+
+The initial runner makes phase and frame separate concepts without implementing phased sampling early:
+
+- `tick` is the monotonic count of executed scheduler phases;
+- `phase` is the zero-based next phase in the current logical frame;
+- completing the configured phase cycle advances the teaching-world physics once and increments `frame`;
+- the default SD-002 scenario has `phaseCount = 1`; multi-phase behavior is exercised only as a generic runner fixture until SD-007 supplies real phased selection;
+- manual step commands pause continuous playback before advancing exactly the requested logical work;
+- browser playback scheduling lives outside `src/core/`; it requests fixed logical frames according to the selected rate;
+- playback rate and play/pause state are controls, not physics inputs, and are excluded from deterministic state hashes;
+- reset restores seeded world/PRNG/counters and pauses playback while preserving the selected rate.
 
 ### Parameter registry
 
