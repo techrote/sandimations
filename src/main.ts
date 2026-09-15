@@ -1,6 +1,7 @@
 import './styles.css';
-import { createCoreStatus } from './core/status';
-import { createBootstrapViewModel } from './presentation/bootstrap-view-model';
+import { SimulationRunner } from './core/runner/runner';
+import { createDefaultScenario } from './core/scenario/scenario';
+import { SimulationController } from './presentation/simulation-controller';
 import { mountApp } from './ui/app';
 
 const root = document.querySelector<HTMLElement>('#app');
@@ -9,6 +10,7 @@ if (root === null) {
   throw new Error('Sandimations app root was not found.');
 }
 
-const coreStatus = createCoreStatus();
-const viewModel = createBootstrapViewModel(coreStatus);
-mountApp(root, viewModel);
+const runner = new SimulationRunner(createDefaultScenario());
+runner.play();
+const controller = new SimulationController(runner);
+mountApp(root, controller);
