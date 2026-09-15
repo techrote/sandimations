@@ -20,7 +20,9 @@ function cloneDefinition(definition: ParameterDefinition): ParameterDefinition {
     return Object.freeze({
       ...definition,
       options: Object.freeze(
-        definition.options.map((option) => Object.freeze({ value: option.value, label: option.label })),
+        definition.options.map((option) =>
+          Object.freeze({ value: option.value, label: option.label }),
+        ),
       ),
     });
   }
@@ -46,12 +48,17 @@ function assertNumericDefinition(definition: NumericParameterDefinition): void {
   if (definition.min > definition.max) {
     throw new ParameterValidationError(`Parameter ${definition.id} has min > max.`);
   }
-  if (definition.step !== undefined && (!Number.isFinite(definition.step) || definition.step <= 0)) {
+  if (
+    definition.step !== undefined &&
+    (!Number.isFinite(definition.step) || definition.step <= 0)
+  ) {
     throw new ParameterValidationError(`Parameter ${definition.id} must have a positive step.`);
   }
   if (definition.kind === 'integer') {
     if (!Number.isInteger(definition.min) || !Number.isInteger(definition.max)) {
-      throw new ParameterValidationError(`Integer parameter ${definition.id} requires integer bounds.`);
+      throw new ParameterValidationError(
+        `Integer parameter ${definition.id} requires integer bounds.`,
+      );
     }
   }
 }
@@ -86,10 +93,7 @@ export function validateParameterValue(
   }
 
   if (definition.kind === 'enum') {
-    if (
-      typeof value !== 'string' ||
-      !definition.options.some((option) => option.value === value)
-    ) {
+    if (typeof value !== 'string' || !definition.options.some((option) => option.value === value)) {
       throw new ParameterValidationError(`Parameter ${definition.id} has an invalid enum value.`);
     }
     return value;

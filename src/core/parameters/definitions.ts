@@ -35,9 +35,7 @@ export interface EnumParameterDefinition extends ParameterDefinitionBase {
 }
 
 export type ParameterDefinition =
-  | BooleanParameterDefinition
-  | NumericParameterDefinition
-  | EnumParameterDefinition;
+  BooleanParameterDefinition | NumericParameterDefinition | EnumParameterDefinition;
 
 export const CoreParameterId = Object.freeze({
   sandEnabled: 'simulation.sand.enabled',

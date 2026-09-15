@@ -126,10 +126,7 @@ function normalizeParameters(
       : definition.defaultValue;
     try {
       const validated = registry.validate(definition.id, candidate);
-      if (
-        definition.serialization === 'omit-default' &&
-        validated === definition.defaultValue
-      ) {
+      if (definition.serialization === 'omit-default' && validated === definition.defaultValue) {
         continue;
       }
       output[definition.id] = validated;

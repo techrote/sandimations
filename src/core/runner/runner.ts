@@ -1,8 +1,5 @@
 import { LogicalWorld, type SandTieBreakMode, type WorldSnapshot } from '../model/world';
-import {
-  CoreParameterId,
-  type ParameterValue,
-} from '../parameters/definitions';
+import { CoreParameterId, type ParameterValue } from '../parameters/definitions';
 import { createCoreParameterRegistry, type ParameterRegistry } from '../parameters/registry';
 import { ParameterStore, type ParameterStoreSnapshot } from '../parameters/store';
 import { SeededPrng } from '../random/prng';

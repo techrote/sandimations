@@ -1,7 +1,4 @@
-import type {
-  ParameterMutationMode,
-  ParameterValue,
-} from './definitions';
+import type { ParameterMutationMode, ParameterValue } from './definitions';
 import { ParameterRegistry, ParameterValidationError } from './registry';
 
 export interface ParameterMutationRecord {
@@ -122,10 +119,7 @@ export class ParameterStore {
     const output: Record<string, ParameterValue> = {};
     for (const definition of this.registry.list()) {
       const value = this.get(definition.id);
-      if (
-        definition.serialization === 'omit-default' &&
-        value === definition.defaultValue
-      ) {
+      if (definition.serialization === 'omit-default' && value === definition.defaultValue) {
         continue;
       }
       output[definition.id] = value;
