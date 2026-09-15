@@ -6,6 +6,7 @@ import type {
 import type { ParameterRegistry } from '../core/parameters/registry';
 import type { ParameterMutationRecord } from '../core/parameters/store';
 import type { ChunkLifecycleState } from '../core/scheduler/chunk-sleep-wake';
+import type { PhasedSamplingPattern } from '../core/scheduler/phased-sampling';
 import type { TraceRecordV1 } from '../core/trace/protocol';
 import type {
   PresentationEvidenceViewModelV1,
@@ -31,6 +32,23 @@ export interface ChunkPresentationRegion {
   readonly state: ChunkLifecycleState;
   readonly quietFrames: number;
   readonly reason: string | null;
+}
+
+export interface SamplingPresentationCell {
+  readonly x: number;
+  readonly y: number;
+  readonly assignedPhase: number;
+  readonly lastSelectedTick: number | null;
+}
+
+export interface SamplingPresentationState {
+  readonly pattern: PhasedSamplingPattern;
+  readonly phaseCount: number;
+  readonly lastExecutedPhase: number | null;
+  readonly lastExecutedTick: number | null;
+  readonly activeCellCount: number;
+  readonly selectedCellCount: number;
+  readonly cells: readonly SamplingPresentationCell[];
 }
 
 export interface OverlayLegendItem {
@@ -64,6 +82,7 @@ export interface WorldPresentationViewModel {
   readonly cells: readonly CellVisual[];
   readonly overlays: readonly CellOverlayMarker[];
   readonly chunks: readonly ChunkPresentationRegion[];
+  readonly sampling: SamplingPresentationState | null;
   readonly latestEvidenceTick: number | null;
 }
 
@@ -82,15 +101,14 @@ const LEGEND: readonly OverlayLegendItem[] = Object.freeze([
   Object.freeze({
     kind: 'evaluated-now',
     label: 'Evaluated now',
-    description:
-      'The model or scheduler explicitly examined this cell in the latest retained phase.',
+    description: 'The model explicitly examined this cell in the latest scheduler phase.',
     nonColorCue: 'Inset frame + center dot',
   }),
   Object.freeze({
     kind: 'active-not-selected',
     label: 'Active, another phase',
     description:
-      'Reserved for explicit scheduler evidence that an active cell belongs to another phase.',
+      'The phased scheduler explicitly assigns this active cell to a different phase bucket.',
     nonColorCue: 'Single diagonal slash',
   }),
   Object.freeze({
@@ -220,18 +238,45 @@ function markChunkCells(
   }
 }
 
+function buildSampling(
+  evidence: PresentationEvidenceViewModelV1,
+): SamplingPresentationState | null {
+  const sampling = evidence.scheduler.sampling ?? null;
+  if (sampling === null) {
+    return null;
+  }
+  return Object.freeze({
+    pattern: sampling.pattern,
+    phaseCount: evidence.scheduler.phaseCount,
+    lastExecutedPhase: sampling.lastExecutedPhase,
+    lastExecutedTick: sampling.lastExecutedTick,
+    activeCellCount: sampling.activeCellCount,
+    selectedCellCount: sampling.selectedCellCount,
+    cells: Object.freeze(sampling.cells.map((cell) => Object.freeze({ ...cell }))),
+  });
+}
+
 function buildWorld(
   simulation: SimulationViewModel,
   evidence: PresentationEvidenceViewModelV1,
 ): WorldPresentationViewModel {
   const latestEvidenceTick = evidence.traceRecords.at(-1)?.tick ?? null;
   const markers = new Map<string, CellOverlayMarker>();
+  const sampling = buildSampling(evidence);
 
   for (const chunk of evidence.scheduler.chunks) {
     if (chunk.state === 'sleeping') {
       markChunkCells(markers, chunk, 'sleeping');
     } else if (chunk.state === 'newly-woken') {
       markChunkCells(markers, chunk, 'newly-woken');
+    }
+  }
+
+  if (sampling?.lastExecutedPhase !== null && sampling !== null) {
+    for (const cell of sampling.cells) {
+      if (cell.assignedPhase !== sampling.lastExecutedPhase) {
+        markCell(markers, cell.x, cell.y, 'active-not-selected');
+      }
     }
   }
 
@@ -275,6 +320,7 @@ function buildWorld(
         }),
       ),
     ),
+    sampling,
     latestEvidenceTick,
   });
 }
@@ -283,6 +329,8 @@ function summarizeRecord(record: TraceRecordV1): string {
   switch (record.type) {
     case 'phase-started':
       return `Phase ${record.phase + 1}/${record.phaseCount} started`;
+    case 'phase-selection':
+      return `Selected ${record.selectedCount}/${record.activeCount} cells (${record.pattern})`;
     case 'phase-completed':
       return `Phase ${record.phase + 1}/${record.phaseCount} completed`;
     case 'cell-examined':
