@@ -4,6 +4,7 @@ import { CoreParameterId } from '../../src/core/parameters/definitions';
 import {
   createDefaultScenario,
   createPhasedSamplingFixtureScenario,
+  createPhasedSamplingNormalScenario,
   createSleepWakeFixtureScenario,
   deserializeScenario,
   normalizeScenario,
@@ -56,6 +57,8 @@ describe('versioned scenario schema', () => {
       [CoreParameterId.chunkSize]: 8,
       [CoreParameterId.chunkSleepDelay]: 3,
       [CoreParameterId.chunkWakeRadius]: 1,
+      [CoreParameterId.phasedPattern]: 'diagonal-lattice',
+      [CoreParameterId.phasedPhaseCount]: 4,
       [CoreParameterId.seedVariant]: 0,
       [CoreParameterId.sandEnabled]: true,
       [CoreParameterId.sandTieBreak]: 'seeded-random',
@@ -118,16 +121,25 @@ describe('versioned scenario schema', () => {
     expect(() => normalizeScenario(resetRequired)).toThrow(/reset-required/i);
   });
 
-  it('ships the deterministic sleep/wake demo and phased-sampling fixture', () => {
+  it('ships deterministic sleep/wake and phased-sampling teaching scenarios', () => {
     const sleepWake = createSleepWakeFixtureScenario();
     const phased = createPhasedSamplingFixtureScenario();
+    const normal = createPhasedSamplingNormalScenario();
 
     expect(sleepWake.id).toBe('sd-006-chunk-sleep-wake');
     expect(sleepWake.scheduler).toEqual({ strategy: 'chunk-sleep-wake-v1', phaseCount: 1 });
     expect(sleepWake.events).toHaveLength(1);
     expect(sleepWake.presentation.notes).toMatch(/quiet chunks sleep/i);
-    expect(phased.id).toBe('fixture-phased-sampling');
-    expect(phased.scheduler.phaseCount).toBe(4);
-    expect(phased.presentation.notes).toMatch(/does not select sparse/i);
+
+    expect(phased.id).toBe('sd-007-phased-sampling-slow');
+    expect(phased.scheduler).toEqual({ strategy: 'phased-sampling-v1', phaseCount: 4 });
+    expect(phased.parameters[CoreParameterId.phasedPhaseCount]).toBe(4);
+    expect(phased.parameters[CoreParameterId.phasedPattern]).toBe('diagonal-lattice');
+    expect(phased.presentation.defaultPlaybackRate).toBe(0.25);
+    expect(phased.presentation.notes).toMatch(/sparse selection/i);
+
+    expect(normal.id).toBe('sd-007-phased-sampling-normal');
+    expect(normal.scheduler).toEqual(phased.scheduler);
+    expect(normal.presentation.defaultPlaybackRate).toBe(1);
   });
 });
