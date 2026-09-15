@@ -29,6 +29,16 @@ function cloneDefinition(definition: ParameterDefinition): ParameterDefinition {
   return Object.freeze({ ...definition });
 }
 
+function compareIds(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+}
+
 function assertCommonDefinition(definition: ParameterDefinition): void {
   if (!PARAMETER_ID_PATTERN.test(definition.id)) {
     throw new ParameterValidationError(`Invalid parameter id: ${definition.id}.`);
@@ -129,7 +139,7 @@ export class ParameterRegistry {
       return cloneDefinition(definition);
     });
 
-    normalized.sort((left, right) => left.id.localeCompare(right.id));
+    normalized.sort((left, right) => compareIds(left.id, right.id));
     for (let index = 1; index < normalized.length; index += 1) {
       if (normalized[index - 1]?.id === normalized[index]?.id) {
         throw new ParameterValidationError(`Duplicate parameter id: ${normalized[index]?.id}.`);
