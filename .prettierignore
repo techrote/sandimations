@@ -3,3 +3,5 @@ dist
 playwright-report
 test-results
 package-lock.json
+docs
+src/styles.css
