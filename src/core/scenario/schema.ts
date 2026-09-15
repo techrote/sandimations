@@ -7,12 +7,14 @@ import { canonicalJsonStringify } from './canonical-json';
 
 export const SCENARIO_SCHEMA_VERSION = 1 as const;
 
+export type ScenarioSchedulerStrategyV1 = 'phase-clock-v1' | 'chunk-sleep-wake-v1';
+
 export interface ScenarioSimulationV1 {
   readonly model: 'falling-sand-v1';
 }
 
 export interface ScenarioSchedulerV1 {
-  readonly strategy: 'phase-clock-v1';
+  readonly strategy: ScenarioSchedulerStrategyV1;
   readonly phaseCount: number;
 }
 
@@ -252,6 +254,15 @@ function normalizePresentation(value: unknown): ScenarioPresentationV1 {
   });
 }
 
+function normalizeSchedulerStrategy(value: unknown): ScenarioSchedulerStrategyV1 {
+  if (value === 'phase-clock-v1' || value === 'chunk-sleep-wake-v1') {
+    return value;
+  }
+  throw new ScenarioValidationError(
+    '$.scheduler.strategy must be "phase-clock-v1" or "chunk-sleep-wake-v1".',
+  );
+}
+
 export function normalizeScenario(
   value: unknown,
   registry: ParameterRegistry = createCoreParameterRegistry(),
@@ -273,9 +284,7 @@ export function normalizeScenario(
   }
 
   const scheduler = asRecord(source.scheduler, '$.scheduler');
-  if (scheduler.strategy !== 'phase-clock-v1') {
-    throw new ScenarioValidationError('$.scheduler.strategy must be "phase-clock-v1".');
-  }
+  const strategy = normalizeSchedulerStrategy(scheduler.strategy);
   const phaseCount = requireInteger(scheduler.phaseCount, '$.scheduler.phaseCount', 1, 64);
   const world = normalizeWorld(source.world);
   const parameters = normalizeParameters(source.parameters, registry);
@@ -288,7 +297,7 @@ export function normalizeScenario(
     title,
     seed,
     simulation: Object.freeze({ model: 'falling-sand-v1' }),
-    scheduler: Object.freeze({ strategy: 'phase-clock-v1', phaseCount }),
+    scheduler: Object.freeze({ strategy, phaseCount }),
     world,
     parameters,
     events,
