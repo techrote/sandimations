@@ -52,6 +52,8 @@ describe('ParameterStore mutation timing', () => {
       [CoreParameterId.chunkSize]: 8,
       [CoreParameterId.chunkSleepDelay]: 3,
       [CoreParameterId.chunkWakeRadius]: 1,
+      [CoreParameterId.phasedPattern]: 'diagonal-lattice',
+      [CoreParameterId.phasedPhaseCount]: 4,
       [CoreParameterId.seedVariant]: 0,
       [CoreParameterId.sandEnabled]: false,
       [CoreParameterId.sandTieBreak]: 'seeded-random',
