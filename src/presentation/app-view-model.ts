@@ -219,7 +219,7 @@ function markCell(
   y: number,
   kind: OverlayKind,
 ): void {
-  const key = cellKey(x, y);
+  const key = `${cellKey(x, y)}:${kind}`;
   const existing = markers.get(key);
   if (existing === undefined || OVERLAY_PRIORITY[kind] >= OVERLAY_PRIORITY[existing.kind]) {
     markers.set(key, Object.freeze({ x, y, kind }));
