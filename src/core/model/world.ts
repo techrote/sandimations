@@ -28,6 +28,11 @@ export interface WorldRegion {
   readonly height: number;
 }
 
+export interface WorldCellRef {
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface WorldSnapshot {
   readonly width: number;
   readonly height: number;
@@ -89,6 +94,30 @@ export class LogicalWorld {
     );
   }
 
+  public stepSandCells(
+    prng: SeededPrng,
+    tieBreak: SandTieBreakMode,
+    cells: readonly WorldCellRef[],
+    observer?: SandStepObserver,
+  ): number {
+    let moves = 0;
+    for (const cell of cells) {
+      const { x, y } = cell;
+      if (
+        !Number.isInteger(x) ||
+        !Number.isInteger(y) ||
+        x < 1 ||
+        x >= this.width - 1 ||
+        y < 0 ||
+        y >= this.height - 1
+      ) {
+        throw new RangeError(`Selected sand cell (${x}, ${y}) is outside the evaluable interior.`);
+      }
+      moves += this.stepSandCell(prng, tieBreak, x, y, observer);
+    }
+    return moves;
+  }
+
   public stepSandRegion(
     prng: SeededPrng,
     tieBreak: SandTieBreakMode,
@@ -114,47 +143,7 @@ export class LogicalWorld {
 
     for (let y = yEnd; y >= yStart; y -= 1) {
       for (let x = xStart; x <= xEnd; x += 1) {
-        const material = this.get(x, y);
-        observer?.examined(x, y, material);
-
-        if (material !== Material.Sand) {
-          observer?.skipped(x, y, material, 'material-not-sand');
-          continue;
-        }
-
-        if (this.get(x, y + 1) === Material.Empty) {
-          this.moveSand(x, y, x, y + 1);
-          observer?.moved(x, y, x, y + 1, material, 'fall');
-          moves += 1;
-          continue;
-        }
-
-        const leftOpen = this.get(x - 1, y + 1) === Material.Empty;
-        const rightOpen = this.get(x + 1, y + 1) === Material.Empty;
-
-        if (leftOpen && rightOpen) {
-          const targetX = this.chooseTieBreakTarget(x, tieBreak, prng);
-          this.moveSand(x, y, targetX, y + 1);
-          observer?.moved(
-            x,
-            y,
-            targetX,
-            y + 1,
-            material,
-            targetX < x ? 'tie-break-left' : 'tie-break-right',
-          );
-          moves += 1;
-        } else if (leftOpen) {
-          this.moveSand(x, y, x - 1, y + 1);
-          observer?.moved(x, y, x - 1, y + 1, material, 'slide-left');
-          moves += 1;
-        } else if (rightOpen) {
-          this.moveSand(x, y, x + 1, y + 1);
-          observer?.moved(x, y, x + 1, y + 1, material, 'slide-right');
-          moves += 1;
-        } else {
-          observer?.blocked(x, y, material, 'no-open-downward-target');
-        }
+        moves += this.stepSandCell(prng, tieBreak, x, y, observer);
       }
     }
 
@@ -174,6 +163,58 @@ export class LogicalWorld {
       height: this.height,
       cells: Object.freeze(cells),
     });
+  }
+
+  private stepSandCell(
+    prng: SeededPrng,
+    tieBreak: SandTieBreakMode,
+    x: number,
+    y: number,
+    observer?: SandStepObserver,
+  ): number {
+    const material = this.get(x, y);
+    observer?.examined(x, y, material);
+
+    if (material !== Material.Sand) {
+      observer?.skipped(x, y, material, 'material-not-sand');
+      return 0;
+    }
+
+    if (this.get(x, y + 1) === Material.Empty) {
+      this.moveSand(x, y, x, y + 1);
+      observer?.moved(x, y, x, y + 1, material, 'fall');
+      return 1;
+    }
+
+    const leftOpen = this.get(x - 1, y + 1) === Material.Empty;
+    const rightOpen = this.get(x + 1, y + 1) === Material.Empty;
+
+    if (leftOpen && rightOpen) {
+      const targetX = this.chooseTieBreakTarget(x, tieBreak, prng);
+      this.moveSand(x, y, targetX, y + 1);
+      observer?.moved(
+        x,
+        y,
+        targetX,
+        y + 1,
+        material,
+        targetX < x ? 'tie-break-left' : 'tie-break-right',
+      );
+      return 1;
+    }
+    if (leftOpen) {
+      this.moveSand(x, y, x - 1, y + 1);
+      observer?.moved(x, y, x - 1, y + 1, material, 'slide-left');
+      return 1;
+    }
+    if (rightOpen) {
+      this.moveSand(x, y, x + 1, y + 1);
+      observer?.moved(x, y, x + 1, y + 1, material, 'slide-right');
+      return 1;
+    }
+
+    observer?.blocked(x, y, material, 'no-open-downward-target');
+    return 0;
   }
 
   private chooseTieBreakTarget(x: number, tieBreak: SandTieBreakMode, prng: SeededPrng): number {
