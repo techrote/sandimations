@@ -450,7 +450,6 @@ export function mountApp(
     parameterBindings.set(parameter.definition.id, { input, current, pending, timing });
   }
 
-  const overlayCheckboxes = new Map<OverlayKind, HTMLInputElement>();
   for (const item of initialView.legend) {
     const row = document.createElement('label');
     row.className = 'legend-row';
@@ -473,7 +472,6 @@ export function mountApp(
     copy.append(title, cue);
     row.append(checkbox, swatch, copy, count);
     legendList.append(row);
-    overlayCheckboxes.set(item.kind, checkbox);
     checkbox.addEventListener('change', () => {
       if (checkbox.checked) {
         enabledOverlays.add(item.kind);
@@ -525,7 +523,9 @@ export function mountApp(
       if (binding === undefined) {
         continue;
       }
-      setInputValue(binding.input, parameter.definition, displayedParameterValue(parameter));
+      if (document.activeElement !== binding.input) {
+        setInputValue(binding.input, parameter.definition, displayedParameterValue(parameter));
+      }
       binding.current.value = formatParameterValue(parameter.currentValue);
       binding.timing.textContent = parameter.timingLabel;
       binding.pending.textContent = parameter.pending
