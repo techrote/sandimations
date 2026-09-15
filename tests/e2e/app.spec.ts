@@ -125,7 +125,9 @@ test('shows chunks sleep, wake from a local disturbance, and return toward sleep
   await expect
     .poll(async () => Number(await page.getByTestId('overlay-count-newly-woken').textContent()))
     .toBeGreaterThan(0);
-  await expect(page.getByTestId('recent-events')).toContainText('Woke chunk');
+  await expect(page.getByTestId('metrics-chunks-woken')).toHaveText('4');
+  await expect(page.getByTestId('metrics-chunks-active')).toHaveText('4');
+  await expect(page.getByTestId('metrics-chunks-sleeping')).toHaveText('8');
 
   await page.getByTestId('step-count').fill('28');
   await page.getByTestId('step-frames').click();
