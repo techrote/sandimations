@@ -2,6 +2,28 @@ import { isMaterial, Material, type Material as MaterialValue } from './material
 import type { SeededPrng } from '../random/prng';
 
 export type SandTieBreakMode = 'seeded-random' | 'left-first' | 'right-first';
+export type SandMoveReason =
+  | 'fall'
+  | 'slide-left'
+  | 'slide-right'
+  | 'tie-break-left'
+  | 'tie-break-right';
+export type SandSkipReason = 'material-not-sand';
+export type SandBlockedReason = 'no-open-downward-target';
+
+export interface SandStepObserver {
+  examined(x: number, y: number, material: MaterialValue): void;
+  skipped(x: number, y: number, material: MaterialValue, reason: SandSkipReason): void;
+  blocked(x: number, y: number, material: MaterialValue, reason: SandBlockedReason): void;
+  moved(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    material: MaterialValue,
+    reason: SandMoveReason,
+  ): void;
+}
 
 export interface WorldSnapshot {
   readonly width: number;
@@ -51,17 +73,26 @@ export class LogicalWorld {
     this.cells[this.indexOf(x, y)] = material;
   }
 
-  public stepSand(prng: SeededPrng, tieBreak: SandTieBreakMode = 'seeded-random'): number {
+  public stepSand(
+    prng: SeededPrng,
+    tieBreak: SandTieBreakMode = 'seeded-random',
+    observer?: SandStepObserver,
+  ): number {
     let moves = 0;
 
     for (let y = this.height - 2; y >= 0; y -= 1) {
       for (let x = 1; x < this.width - 1; x += 1) {
-        if (this.get(x, y) !== Material.Sand) {
+        const material = this.get(x, y);
+        observer?.examined(x, y, material);
+
+        if (material !== Material.Sand) {
+          observer?.skipped(x, y, material, 'material-not-sand');
           continue;
         }
 
         if (this.get(x, y + 1) === Material.Empty) {
           this.moveSand(x, y, x, y + 1);
+          observer?.moved(x, y, x, y + 1, material, 'fall');
           moves += 1;
           continue;
         }
@@ -72,13 +103,25 @@ export class LogicalWorld {
         if (leftOpen && rightOpen) {
           const targetX = this.chooseTieBreakTarget(x, tieBreak, prng);
           this.moveSand(x, y, targetX, y + 1);
+          observer?.moved(
+            x,
+            y,
+            targetX,
+            y + 1,
+            material,
+            targetX < x ? 'tie-break-left' : 'tie-break-right',
+          );
           moves += 1;
         } else if (leftOpen) {
           this.moveSand(x, y, x - 1, y + 1);
+          observer?.moved(x, y, x - 1, y + 1, material, 'slide-left');
           moves += 1;
         } else if (rightOpen) {
           this.moveSand(x, y, x + 1, y + 1);
+          observer?.moved(x, y, x + 1, y + 1, material, 'slide-right');
           moves += 1;
+        } else {
+          observer?.blocked(x, y, material, 'no-open-downward-target');
         }
       }
     }

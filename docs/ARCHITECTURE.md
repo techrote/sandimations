@@ -23,6 +23,11 @@ Scenario / Input events
         |
         v
 +----------------------+
+| evidence backend     |
++----------------------+
+        |
+        v
++----------------------+
 | presentation adapter |
 +----------------------+
         |
@@ -70,7 +75,7 @@ The initial runner makes phase and frame separate concepts without implementing 
 - manual step commands pause continuous playback before advancing exactly the requested logical work;
 - browser playback scheduling lives outside `src/core/`; it requests fixed logical frames according to the selected rate;
 - playback rate and play/pause state are controls, not physics inputs, and are excluded from deterministic state hashes;
-- reset reconstructs the world, PRNG, counters, event cursor, and parameter store from the scenario baseline plus any already-applied reset-required configuration, while preserving the selected playback rate and pausing execution.
+- reset reconstructs the world, PRNG, counters, event cursor, parameter store, trace sequence, and deterministic metrics from the scenario baseline plus any already-applied reset-required configuration, while preserving the selected playback rate and pausing execution.
 
 ### Parameter registry
 
@@ -114,15 +119,45 @@ Scripted events are ordered by `(tick, order)` and are applied before the schedu
 
 ### Trace protocol
 
-Simulation and scheduler code emit structured events and metrics. Renderers subscribe to them; they do not reverse-engineer scheduler behavior from pixels.
+Simulation and scheduler code emit structured events; presentation code does not reverse-engineer scheduler/model behavior from pixels.
 
-Trace records should carry stable fields sufficient for deterministic tests and future adapters: logical frame, phase, event type, affected identity/coordinate/chunk, and reason/cause where relevant.
+SD-004 establishes trace protocol version `1`. A trace snapshot carries provenance plus deterministically ordered records. Every record identifies the executing logical frame, scheduler phase, scheduler tick, monotonic sequence, and event-specific evidence.
 
-The protocol should be versioned before external trace import is supported.
+The initial vocabulary covers:
+
+- phase started/completed;
+- cell examined/moved/skipped/blocked;
+- chunk activated/slept/woken.
+
+The current teaching world reports neutral scan observations directly from its real sand-update loop. The runner translates those observations into trace records. This keeps the physical model independent from the trace schema while ensuring highlights and counters originate from the work actually performed.
+
+Chunk event types are defined before SD-006, but the current teaching runner does not fabricate chunk events before a chunk scheduler exists.
+
+See `docs/TRACE_PROTOCOL.md` for the protocol, ordering, provenance, compatibility, and work-unit definitions.
+
+### Deterministic metrics
+
+Metrics schema version `1` is derived from the same trace records used for explanation. It includes cell counters, chunk current-state/transition counters, phase progress, and comparable deterministic work units.
+
+Wall-clock timing is intentionally excluded. Browser/CPU/GPU profiling may be added later as a separately labelled diagnostic channel, never mixed into deterministic work counters.
+
+### Evidence backend
+
+`EvidenceBackendV1` is the replaceable read boundary between simulation evidence and presentation. One snapshot exposes:
+
+- provenance;
+- canonical simulation state and deterministic state hash;
+- scheduler state;
+- versioned trace snapshot;
+- deterministic metrics snapshot.
+
+`TeachingModelEvidenceBackendV1` adapts the live TypeScript runner. Future recorded-trace and C++/WASM backends should implement the same contract rather than requiring presentation-specific scheduler logic.
 
 ### Presentation adapter
 
-Transforms core state and trace data into renderer-friendly view models. It is the seam for future C++/WASM or recorded-trace backends.
+`PresentationEvidenceAdapterV1` consumes `EvidenceBackendV1` and exposes renderer/inspector-friendly structured evidence without DOM dependencies. It does not infer scheduler decisions.
+
+Reading backend or presentation snapshots is side-effect free and cannot advance physics, alter trace ordering, or change metrics.
 
 ### Renderer/UI
 
@@ -142,6 +177,8 @@ For the same:
 
 Use an explicit model-owned PRNG. No hidden `Math.random()` calls are allowed in deterministic core code. Scenario normalization/serialization must not introduce wall-clock timestamps, random identifiers, locale-dependent ordering, or browser state.
 
+Trace/metrics/backend/presentation reads are observational only. They must not become deterministic inputs or change future results.
+
 ## Baseline / optimized comparison
 
 Comparison mode should instantiate independent runners from the same canonical scenario seed/input stream. Baseline and optimized implementations may use different scheduler strategies but must share comparable model contracts.
@@ -157,6 +194,8 @@ Initial releases need deterministic reset/replay, not arbitrary reverse executio
 ```text
 src/
   core/
+    evidence/
+    metrics/
     model/
     scheduler/
     runner/
