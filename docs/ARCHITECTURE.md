@@ -70,7 +70,7 @@ The initial runner makes phase and frame separate concepts without implementing 
 - manual step commands pause continuous playback before advancing exactly the requested logical work;
 - browser playback scheduling lives outside `src/core/`; it requests fixed logical frames according to the selected rate;
 - playback rate and play/pause state are controls, not physics inputs, and are excluded from deterministic state hashes;
-- without pending reset-required parameter mutations, reset restores seeded world/PRNG/counters and pauses playback while preserving the selected rate.
+- reset reconstructs the world, PRNG, counters, event cursor, and parameter store from the scenario baseline plus any already-applied reset-required configuration, while preserving the selected playback rate and pausing execution.
 
 ### Parameter registry
 
@@ -78,11 +78,13 @@ Parameters are schema-driven. UI controls are generated from or bound to paramet
 
 Mutation modes are:
 
-- `live`: validated value becomes current immediately;
+- `live`: validated value becomes current immediately for the running simulation;
 - `next-step`: mutation is queued in deterministic request order and applied at the next scheduler phase boundary before that phase executes;
-- `reset-required`: mutation is queued until explicit runner reset, then applied before deterministic world/PRNG/counter reconstruction.
+- `reset-required`: mutation is queued until explicit runner reset, then folded into persistent reset configuration before deterministic parameter/world/PRNG/counter reconstruction.
 
-Definitions also declare stable IDs, labels/help, value kinds, bounds/options/defaults, and serialization behavior. Unknown parameter IDs and invalid values fail closed.
+A reset clears runtime live/next-step experimentation back to the scenario's initial parameter values. Applied reset-required configuration persists across subsequent resets until a new scenario is loaded. This lets scripted live/next-step events replay from the same baseline after reset.
+
+Definitions also declare stable IDs, labels/help, value kinds, bounds/options/defaults, and serialization behavior. Unknown parameter IDs and invalid values fail closed. Registry ordering uses a locale-independent code-point comparison rather than browser/OS locale collation.
 
 #### SD-003 concrete parameter semantics
 
@@ -136,9 +138,9 @@ For the same:
 - ordered parameter mutations;
 - runner commands;
 
-…the core must produce the same logical states, trace events, and metrics regardless of browser refresh rate or render cadence.
+…the core must produce the same logical states, trace events, and metrics regardless of browser refresh rate, render cadence, OS locale, or browser locale.
 
-Use an explicit model-owned PRNG. No hidden `Math.random()` calls are allowed in deterministic core code. Scenario normalization/serialization must not introduce wall-clock timestamps, random identifiers, or browser state.
+Use an explicit model-owned PRNG. No hidden `Math.random()` calls are allowed in deterministic core code. Scenario normalization/serialization must not introduce wall-clock timestamps, random identifiers, locale-dependent ordering, or browser state.
 
 ## Baseline / optimized comparison
 
