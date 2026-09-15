@@ -13,11 +13,7 @@ import type {
 import type { CellVisual, SimulationViewModel } from './simulation-controller';
 
 export type OverlayKind =
-  | 'evaluated-now'
-  | 'active-not-selected'
-  | 'sleeping'
-  | 'newly-woken'
-  | 'blocked-rejected';
+  'evaluated-now' | 'active-not-selected' | 'sleeping' | 'newly-woken' | 'blocked-rejected';
 
 export interface CellOverlayMarker {
   readonly x: number;
@@ -73,13 +69,15 @@ const LEGEND: readonly OverlayLegendItem[] = Object.freeze([
   Object.freeze({
     kind: 'evaluated-now',
     label: 'Evaluated now',
-    description: 'The model or scheduler explicitly examined this cell in the latest retained phase.',
+    description:
+      'The model or scheduler explicitly examined this cell in the latest retained phase.',
     nonColorCue: 'Inset frame + center dot',
   }),
   Object.freeze({
     kind: 'active-not-selected',
     label: 'Active, another phase',
-    description: 'Reserved for explicit scheduler evidence that an active cell belongs to another phase.',
+    description:
+      'Reserved for explicit scheduler evidence that an active cell belongs to another phase.',
     nonColorCue: 'Single diagonal slash',
   }),
   Object.freeze({
@@ -97,7 +95,8 @@ const LEGEND: readonly OverlayLegendItem[] = Object.freeze([
   Object.freeze({
     kind: 'blocked-rejected',
     label: 'Blocked / rejected',
-    description: 'The model or scheduler explicitly reported that this attempted work could not proceed.',
+    description:
+      'The model or scheduler explicitly reported that this attempted work could not proceed.',
     nonColorCue: 'X mark',
   }),
 ]);
@@ -147,7 +146,9 @@ function buildParameters(
   evidence: PresentationEvidenceViewModelV1,
   registry: ParameterRegistry,
 ): readonly ParameterControlViewModel[] {
-  const values = new Map(evidence.simulation.parameters.values.map((entry) => [entry.id, entry.value]));
+  const values = new Map(
+    evidence.simulation.parameters.values.map((entry) => [entry.id, entry.value]),
+  );
 
   return Object.freeze(
     registry.list().map((definition) => {
@@ -254,7 +255,9 @@ function summarizeRecord(record: TraceRecordV1): string {
   }
 }
 
-function buildRecentEvents(records: readonly TraceRecordV1[]): readonly RecentTraceEventViewModel[] {
+function buildRecentEvents(
+  records: readonly TraceRecordV1[],
+): readonly RecentTraceEventViewModel[] {
   return Object.freeze(
     records
       .slice(-8)

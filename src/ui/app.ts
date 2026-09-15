@@ -45,7 +45,10 @@ function createButton(label: string, testId: string, onClick: () => void): HTMLB
   return button;
 }
 
-function createPanel(title: string, className: string): { section: HTMLElement; body: HTMLDivElement } {
+function createPanel(
+  title: string,
+  className: string,
+): { section: HTMLElement; body: HTMLDivElement } {
   const section = document.createElement('section');
   section.className = `panel ${className}`;
   const heading = document.createElement('h2');
@@ -103,7 +106,9 @@ function readInputValue(
   return input.value;
 }
 
-function createParameterInput(definition: ParameterDefinition): HTMLInputElement | HTMLSelectElement {
+function createParameterInput(
+  definition: ParameterDefinition,
+): HTMLInputElement | HTMLSelectElement {
   if (definition.kind === 'enum') {
     const select = document.createElement('select');
     for (const option of definition.options) {
@@ -321,7 +326,8 @@ export function mountApp(
   });
   stepCount.addEventListener('input', () => {
     const value = Number(stepCount.value);
-    stepFramesButton.textContent = Number.isSafeInteger(value) && value > 0 ? `+${value} frames` : 'Step frames';
+    stepFramesButton.textContent =
+      Number.isSafeInteger(value) && value > 0 ? `+${value} frames` : 'Step frames';
   });
   multiStep.append(stepCountLabel, stepCount, stepFramesButton);
 

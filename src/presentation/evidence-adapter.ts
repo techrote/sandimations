@@ -33,7 +33,9 @@ function assertTraceLimit(limit: number): void {
   }
 }
 
-function adaptWindow(snapshot: BackendPresentationEvidenceSnapshotV1): PresentationEvidenceViewModelV1 {
+function adaptWindow(
+  snapshot: BackendPresentationEvidenceSnapshotV1,
+): PresentationEvidenceViewModelV1 {
   return Object.freeze({
     provenance: snapshot.provenance,
     simulation: snapshot.simulation,
@@ -76,7 +78,9 @@ function adaptFull(
 export class PresentationEvidenceAdapterV1 {
   public constructor(private readonly backend: EvidenceBackendV1) {}
 
-  public read(maxTraceRecords = DEFAULT_PRESENTATION_TRACE_RECORDS): PresentationEvidenceViewModelV1 {
+  public read(
+    maxTraceRecords = DEFAULT_PRESENTATION_TRACE_RECORDS,
+  ): PresentationEvidenceViewModelV1 {
     assertTraceLimit(maxTraceRecords);
     if (this.backend.readPresentationEvidence !== undefined) {
       return adaptWindow(this.backend.readPresentationEvidence(maxTraceRecords));
