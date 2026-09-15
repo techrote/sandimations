@@ -48,5 +48,7 @@ if (violations.length > 0) {
   for (const violation of violations) console.error(`- ${violation}`);
   process.exitCode = 1;
 } else {
-  console.log(`Core boundary check passed (${files.length} TypeScript file${files.length === 1 ? '' : 's'}).`);
+  console.log(
+    `Core boundary check passed (${files.length} TypeScript file${files.length === 1 ? '' : 's'}).`,
+  );
 }
