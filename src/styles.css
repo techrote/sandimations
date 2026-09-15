@@ -652,4 +652,8 @@ h2 {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+
+  .legend-swatch-newly-woken {
+    animation: none !important;
+  }
 }
