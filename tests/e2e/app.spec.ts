@@ -171,14 +171,18 @@ test('phase stepping visibly advances the real sparse sampling scheduler', async
   await page.getByTestId('step-phase').click();
   await expect(page.getByTestId('tick-count')).toHaveText('2');
   await expect(page.getByTestId('phase-count')).toHaveText('3/4');
-  await expect(page.getByTestId('sampling-coverage')).not.toHaveText(`${selected}/${selected + deferred}`);
+  await expect(page.getByTestId('sampling-coverage')).not.toHaveText(
+    `${selected}/${selected + deferred}`,
+  );
 
   await page.getByTestId('reset').click();
   await page.getByTestId('step-frame').click();
   await expect(page.getByTestId('frame-count')).toHaveText('1');
   await expect(page.getByTestId('tick-count')).toHaveText('4');
   await expect(page.getByTestId('phase-count')).toHaveText('1/4');
-  await expect(page.getByTestId('sampling-coverage')).toHaveText(`${selected + deferred}/${selected + deferred}`);
+  await expect(page.getByTestId('sampling-coverage')).toHaveText(
+    `${selected + deferred}/${selected + deferred}`,
+  );
 });
 
 test('phased sampling phase count and pattern apply on reset', async ({ page }) => {

@@ -127,7 +127,12 @@ function drawSamplingCoverage(
         ? 0
         : Math.round((cell.assignedPhase / (sampling.phaseCount - 1)) * (CELL_SIZE - 6));
     context.fillStyle = 'rgba(233, 236, 225, 0.32)';
-    context.fillRect(cell.x * CELL_SIZE + 2 + phasePosition, cell.y * CELL_SIZE + CELL_SIZE - 3, 2, 1);
+    context.fillRect(
+      cell.x * CELL_SIZE + 2 + phasePosition,
+      cell.y * CELL_SIZE + CELL_SIZE - 3,
+      2,
+      1,
+    );
   }
   context.restore();
 }

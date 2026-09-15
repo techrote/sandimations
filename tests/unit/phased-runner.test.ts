@@ -23,9 +23,7 @@ describe('SimulationRunner phased sampling', () => {
       if (record.type !== 'cell-examined') {
         continue;
       }
-      expect(
-        phaseForCell('diagonal-lattice', record.cell.x, record.cell.y, 4, 0x0f45ed5a),
-      ).toBe(0);
+      expect(phaseForCell('diagonal-lattice', record.cell.x, record.cell.y, 4, 0x0f45ed5a)).toBe(0);
     }
     expect(runner.getSnapshot()).toMatchObject({ frame: 0, phase: 1, tick: 1, phaseCount: 4 });
   });
@@ -40,12 +38,13 @@ describe('SimulationRunner phased sampling', () => {
       .records.filter((record) => record.type === 'phase-selection');
     expect(selections.map((record) => record.phase)).toEqual([0, 1, 2, 3]);
 
-    const examinedByPhase = selections.map((selection) =>
-      runner
-        .getTraceSnapshot()
-        .records.filter(
-          (record) => record.type === 'cell-examined' && record.tick === selection.tick,
-        ).length,
+    const examinedByPhase = selections.map(
+      (selection) =>
+        runner
+          .getTraceSnapshot()
+          .records.filter(
+            (record) => record.type === 'cell-examined' && record.tick === selection.tick,
+          ).length,
     );
     expect(examinedByPhase).toEqual(
       selections.map((selection) =>
