@@ -1,9 +1,22 @@
-import { LogicalWorld, type SandTieBreakMode, type WorldSnapshot } from '../model/world';
+import { EvidenceRecorderV1 } from '../evidence/recorder';
+import type { DeterministicMetricsSnapshotV1 } from '../metrics/metrics';
+import {
+  LogicalWorld,
+  type SandStepObserver,
+  type SandTieBreakMode,
+  type WorldSnapshot,
+} from '../model/world';
 import { CoreParameterId, type ParameterValue } from '../parameters/definitions';
 import { createCoreParameterRegistry, type ParameterRegistry } from '../parameters/registry';
 import { ParameterStore, type ParameterStoreSnapshot } from '../parameters/store';
 import { SeededPrng } from '../random/prng';
 import { normalizeScenario, type CoreScenario, type ScenarioEventV1 } from '../scenario/schema';
+import {
+  createEvidenceProvenanceV1,
+  type EvidenceProvenanceV1,
+  type TraceContextV1,
+  type TraceSnapshotV1,
+} from '../trace/protocol';
 import type { RunnerInput } from './input';
 import { hashDeterministicState } from './state-hash';
 
@@ -34,6 +47,7 @@ export class SimulationRunner {
   private prng: SeededPrng;
   private parameters: ParameterStore;
   private readonly resetOverrides = new Map<string, ParameterValue>();
+  private readonly evidence: EvidenceRecorderV1;
   private frame = 0;
   private phase = 0;
   private tick = 0;
@@ -49,6 +63,7 @@ export class SimulationRunner {
     this.parameters = new ParameterStore(this.registry, this.scenario.parameters);
     this.world = new LogicalWorld(this.scenario.world);
     this.prng = new SeededPrng(this.getEffectiveSeed());
+    this.evidence = new EvidenceRecorderV1(this.createProvenance());
   }
 
   public play(): void {
@@ -153,6 +168,27 @@ export class SimulationRunner {
     return hashDeterministicState(this.getSnapshot());
   }
 
+  public getProvenance(): EvidenceProvenanceV1 {
+    return this.createProvenance();
+  }
+
+  public getTraceSnapshot(): TraceSnapshotV1 {
+    return this.evidence.getTraceSnapshot();
+  }
+
+  public getMetricsSnapshot(): DeterministicMetricsSnapshotV1 {
+    return this.evidence.getMetricsSnapshot();
+  }
+
+  private createProvenance(): EvidenceProvenanceV1 {
+    return createEvidenceProvenanceV1({
+      backendId: 'sandimations-teaching-model-v1',
+      backendKind: 'teaching-model',
+      strategyId: this.scenario.scheduler.strategy,
+      scenarioId: this.scenario.id,
+    });
+  }
+
   private rebuildParameters(): void {
     const values: Record<string, ParameterValue> = { ...this.scenario.parameters };
     for (const [id, value] of this.resetOverrides) {
@@ -169,6 +205,7 @@ export class SimulationRunner {
     this.tick = 0;
     this.eventCursor = 0;
     this.playing = false;
+    this.evidence.reset(this.createProvenance());
   }
 
   private getEffectiveSeed(): number {
@@ -184,21 +221,79 @@ export class SimulationRunner {
   }
 
   private advanceOnePhase(): void {
+    const context = this.currentTraceContext();
     this.applyScenarioEventsAtCurrentTick();
     this.parameters.applyNextStep();
+    this.evidence.record(context, {
+      type: 'phase-started',
+      phaseCount: this.scenario.scheduler.phaseCount,
+    });
+
+    const completesFrame = this.phase + 1 >= this.scenario.scheduler.phaseCount;
+    if (completesFrame && this.parameters.getBoolean(CoreParameterId.sandEnabled)) {
+      this.world.stepSand(
+        this.prng,
+        tieBreakMode(this.parameters.getString(CoreParameterId.sandTieBreak)),
+        this.createSandObserver(context),
+      );
+    }
+
+    this.evidence.record(context, {
+      type: 'phase-completed',
+      phaseCount: this.scenario.scheduler.phaseCount,
+    });
+
     this.tick += 1;
     this.phase += 1;
-
     if (this.phase >= this.scenario.scheduler.phaseCount) {
       this.phase = 0;
-      if (this.parameters.getBoolean(CoreParameterId.sandEnabled)) {
-        this.world.stepSand(
-          this.prng,
-          tieBreakMode(this.parameters.getString(CoreParameterId.sandTieBreak)),
-        );
-      }
       this.frame += 1;
     }
+  }
+
+  private currentTraceContext(): TraceContextV1 {
+    return Object.freeze({
+      frame: this.frame,
+      phase: this.phase,
+      tick: this.tick,
+    });
+  }
+
+  private createSandObserver(context: TraceContextV1): SandStepObserver {
+    return {
+      examined: (x, y, material) => {
+        this.evidence.record(context, {
+          type: 'cell-examined',
+          cell: Object.freeze({ x, y }),
+          material,
+        });
+      },
+      skipped: (x, y, material, reason) => {
+        this.evidence.record(context, {
+          type: 'cell-skipped',
+          cell: Object.freeze({ x, y }),
+          material,
+          reason,
+        });
+      },
+      blocked: (x, y, material, reason) => {
+        this.evidence.record(context, {
+          type: 'cell-blocked',
+          cell: Object.freeze({ x, y }),
+          material,
+          reason,
+        });
+      },
+      moved: (fromX, fromY, toX, toY, material, reason) => {
+        this.evidence.record(context, {
+          type: 'cell-moved',
+          from: Object.freeze({ x: fromX, y: fromY }),
+          to: Object.freeze({ x: toX, y: toY }),
+          material,
+          reason,
+        });
+      },
+    };
   }
 
   private applyScenarioEventsAtCurrentTick(): void {

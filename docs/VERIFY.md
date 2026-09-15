@@ -25,9 +25,26 @@ Fixtures should prove that identical seed + scenario + ordered inputs + paramete
 - trace event sequence;
 - deterministic metrics.
 
-Tests should explicitly vary render cadence or call presentation code between core steps to demonstrate that rendering does not change simulation results.
+Tests should explicitly vary render cadence or call presentation/backend evidence reads between core steps to demonstrate that observation does not change simulation results.
 
 No deterministic core module may call `Math.random()`.
+
+## Trace and metrics tests
+
+Trace verification should cover:
+
+- explicit protocol/schema versions;
+- monotonic deterministic event sequence;
+- frame/phase/tick context on every record;
+- provenance alignment across trace and metrics snapshots;
+- exact golden traces for small human-auditable fixtures;
+- distinct examined/moved/skipped/blocked event semantics;
+- chunk activated/slept/woken vocabulary and metrics even before the live chunk scheduler exists;
+- reset/replay reproducing trace sequence and metrics exactly;
+- backend/presentation reads having no effect on future trace or metrics;
+- deterministic work counters remaining separate from wall-clock profiling.
+
+When a metrics snapshot is derived from trace records, tests should reconcile the counters against those records rather than validating only independent totals.
 
 ## Time-control tests
 

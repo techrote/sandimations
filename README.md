@@ -6,9 +6,11 @@ The project is intended to make spatial/temporal optimization strategies intuiti
 
 ## Current implementation status
 
-SD-003 adds the schema-driven configuration substrate on top of the SD-002 deterministic sand runner. The project now has a typed parameter registry, explicit `live` / `next-step` / `reset-required` mutation semantics, versioned validated scenario documents, canonical deterministic JSON serialization, ordered scripted parameter/input events, and prepared fixtures for later sleep/wake and phased-sampling work.
+SD-004 completes the deterministic explanatory substrate beneath the future visualization shell. The project now has a deterministic sand teaching model and runner, early time controls, schema-driven parameters, versioned/canonical scenarios, **trace protocol v1**, **deterministic metrics v1**, explicit evidence provenance, and a replaceable backend/presentation evidence boundary.
 
-The current browser controls remain the SD-002 vertical slice: play/pause, a speed slider from `1/32×` through `16×`, a direct `1×` button, one-phase/tick stepping, one-frame stepping, `+10` frame stepping, reset, and visible frame/phase/tick/hash counters.
+The teaching model now emits structured evidence from the work it actually performs: phase boundaries plus cell examined/moved/skipped/blocked records from the real sand scan. Deterministic metrics are derived from those same records rather than reconstructed from rendered pixels. Live trace retention is bounded and reports explicit truncation metadata while cumulative metrics remain exact.
+
+The current browser controls remain the SD-002 vertical slice: play/pause, a speed slider from `1/32×` through `16×`, a direct `1×` button, one-phase/tick stepping, one-frame stepping, `+10` frame stepping, reset, and visible frame/phase/tick/hash counters. SD-005 is the next issue and will build the reusable explanatory UI/inspectors over the evidence contracts that now exist.
 
 Chunk sleep/wake scheduling and real phased-sampling selection are deliberately not implemented yet. The default scenario still has one phase per frame; the phased fixture uses a four-phase clock but explicitly does not select sparse cell subsets until SD-007.
 
@@ -31,7 +33,7 @@ Chunk sleep/wake scheduling and real phased-sampling selection are deliberately 
 
 ## Deterministic teaching model and time semantics
 
-The current material model is intentionally small: `empty`, `wall`, and `sand`. Sand falls vertically when possible and otherwise chooses an available down-diagonal direction. The tie-break mode is now a registered parameter: seeded-random by default, with deterministic left-first/right-first alternatives available through the core API. This is an explanatory model, not a claim that these are the exact current CyberSand material rules.
+The current material model is intentionally small: `empty`, `wall`, and `sand`. Sand falls vertically when possible and otherwise chooses an available down-diagonal direction. The tie-break mode is a registered parameter: seeded-random by default, with deterministic left-first/right-first alternatives available through the core API. This is an explanatory model, not a claim that these are the exact current CyberSand material rules.
 
 The deterministic core never reads browser time, schedules animation frames, or changes its physics according to playback rate. A browser-only playback driver decides when to request another fixed logical frame from the runner.
 
@@ -58,6 +60,26 @@ The initial registered parameters are:
 Scenario schema version `1` records the model/world, scheduler clock configuration, parameter values, deterministic scripted events, and separate non-authoritative presentation defaults. Supported scenario JSON is validated strictly and serialized canonically.
 
 See [`docs/SCENARIO_SCHEMA.md`](docs/SCENARIO_SCHEMA.md) for the field contract, event ordering rules, mutation timing, compatibility policy, and prepared fixture descriptions.
+
+## Structured evidence, traces, and metrics
+
+Trace protocol version `1` gives every retained event a monotonic sequence plus the logical frame, phase, and tick that produced it. The current teaching backend emits:
+
+- `phase-started` / `phase-completed`;
+- `cell-examined`;
+- `cell-moved`;
+- `cell-skipped`;
+- `cell-blocked`.
+
+The protocol also reserves explicit `chunk-activated`, `chunk-slept`, and `chunk-woken` evidence for SD-006 rather than making future UI infer chunk state from appearance.
+
+Trace and metrics snapshots carry backend/strategy/scenario provenance. Deterministic metrics count cell work, future chunk transitions/state, and phase progress. These counters are explanatory algorithmic-work evidence; they are deliberately separate from wall-clock CPU/GPU/browser profiling.
+
+Live trace retention uses a bounded `16,384`-record ring. Snapshots report `firstSequence`, `nextSequence`, and `droppedRecords`, so future timeline UI can distinguish a complete retained window from an intentionally truncated one. Metrics continue accumulating across trace eviction until deterministic reset.
+
+`EvidenceBackendV1` is the replaceable seam between evidence production and presentation. The live TypeScript runner is currently exposed through `TeachingModelEvidenceBackendV1`; later recorded CyberSand traces or a C++/WASM backend can provide the same contract. `PresentationEvidenceAdapterV1` consumes that interface without DOM or backend-specific scheduler logic.
+
+See [`docs/TRACE_PROTOCOL.md`](docs/TRACE_PROTOCOL.md) for event semantics, work-unit definitions, retention, provenance, compatibility/versioning, and the backend/presentation contract.
 
 ## Quick start on Windows
 
@@ -123,16 +145,18 @@ CI performs a clean `npm ci` install from `package-lock.json`, runs formatting/s
 The current implementation follows this dependency direction:
 
 ```text
-src/core/            deterministic world, PRNG, parameter/scenario state and runner
+src/core/            deterministic model/runner/parameters/scenarios/traces/metrics
     ↓
-src/presentation/    browser-independent controller/view-model and speed mapping
+src/adapters/        replaceable evidence-backend contracts and live teaching adapter
+    ↓
+src/presentation/    browser-independent view-model/evidence adaptation and speed mapping
     ↓
 src/ui/              DOM/canvas rendering and wall-clock playback scheduling
     ↓
 src/main.ts          composition entry point
 ```
 
-Future scheduler, trace, backend-adapter, and mature parameter-control UI work remain governed by `docs/ARCHITECTURE.md` and their own issues.
+Future scheduler implementations, mature parameter-control UI, comparison orchestration, and external/WASM evidence backends remain governed by `docs/ARCHITECTURE.md` and their own issues.
 
 The `npm run lint` boundary check rejects DOM access, animation-frame scheduling, hidden randomness, wall-clock reads, and timer scheduling from `src/core/`.
 
@@ -143,6 +167,7 @@ The `npm run lint` boundary check rejects DOM access, animation-frame scheduling
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) — educational goals, visual semantics, interaction model, and scope.
 - [`docs/VERIFY.md`](docs/VERIFY.md) — required tests and evidence.
 - [`docs/SCENARIO_SCHEMA.md`](docs/SCENARIO_SCHEMA.md) — scenario/parameter serialization and compatibility contract.
+- [`docs/TRACE_PROTOCOL.md`](docs/TRACE_PROTOCOL.md) — trace, metrics, provenance, retention, and evidence-adapter contract.
 - [`AGENTS.md`](AGENTS.md) — autonomous implementation and PR/merge workflow.
 
 Repository state, these documents, and the relevant GitHub issue are authoritative over chat history.

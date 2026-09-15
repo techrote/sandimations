@@ -1,0 +1,113 @@
+import {
+  TRACE_PROTOCOL_VERSION,
+  type EvidenceProvenanceV1,
+  type TraceContextV1,
+  type TraceEventV1,
+  type TraceRecordV1,
+  type TraceSnapshotV1,
+} from './protocol';
+
+export const DEFAULT_TRACE_CAPACITY = 16_384;
+
+export interface TraceSinkV1 {
+  reset(provenance: EvidenceProvenanceV1): void;
+  record(context: TraceContextV1, event: TraceEventV1): TraceRecordV1;
+  getSnapshot(): TraceSnapshotV1;
+}
+
+function assertNonNegativeInteger(value: number, label: string): void {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new RangeError(`${label} must be a non-negative safe integer.`);
+  }
+}
+
+function assertCapacity(value: number): void {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new RangeError('Trace capacity must be a positive safe integer.');
+  }
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value === null || typeof value !== 'object' || Object.isFrozen(value)) {
+    return value;
+  }
+
+  for (const nested of Object.values(value as Record<string, unknown>)) {
+    deepFreeze(nested);
+  }
+  return Object.freeze(value);
+}
+
+export class InMemoryTraceSinkV1 implements TraceSinkV1 {
+  private provenance: EvidenceProvenanceV1;
+  private sequence = 0;
+  private retained = 0;
+  private writeIndex = 0;
+  private droppedRecords = 0;
+  private records: Array<TraceRecordV1 | undefined>;
+
+  public constructor(
+    provenance: EvidenceProvenanceV1,
+    private readonly capacity: number = DEFAULT_TRACE_CAPACITY,
+  ) {
+    assertCapacity(capacity);
+    this.provenance = provenance;
+    this.records = new Array<TraceRecordV1 | undefined>(capacity);
+  }
+
+  public reset(provenance: EvidenceProvenanceV1): void {
+    this.provenance = provenance;
+    this.sequence = 0;
+    this.retained = 0;
+    this.writeIndex = 0;
+    this.droppedRecords = 0;
+    this.records = new Array<TraceRecordV1 | undefined>(this.capacity);
+  }
+
+  public record(context: TraceContextV1, event: TraceEventV1): TraceRecordV1 {
+    assertNonNegativeInteger(context.frame, 'frame');
+    assertNonNegativeInteger(context.phase, 'phase');
+    assertNonNegativeInteger(context.tick, 'tick');
+
+    const record = deepFreeze({
+      sequence: this.sequence,
+      frame: context.frame,
+      phase: context.phase,
+      tick: context.tick,
+      ...event,
+    }) as TraceRecordV1;
+    this.sequence += 1;
+
+    if (this.retained === this.capacity) {
+      this.droppedRecords += 1;
+    } else {
+      this.retained += 1;
+    }
+    this.records[this.writeIndex] = record;
+    this.writeIndex = (this.writeIndex + 1) % this.capacity;
+    return record;
+  }
+
+  public getSnapshot(): TraceSnapshotV1 {
+    const retainedRecords: TraceRecordV1[] = [];
+    const start = this.retained === this.capacity ? this.writeIndex : 0;
+
+    for (let offset = 0; offset < this.retained; offset += 1) {
+      const record = this.records[(start + offset) % this.capacity];
+      if (record === undefined) {
+        throw new Error('Trace ring buffer contains an unexpected empty slot.');
+      }
+      retainedRecords.push(record);
+    }
+
+    const firstSequence = retainedRecords[0]?.sequence ?? this.sequence;
+    return Object.freeze({
+      version: TRACE_PROTOCOL_VERSION,
+      provenance: this.provenance,
+      firstSequence,
+      nextSequence: this.sequence,
+      droppedRecords: this.droppedRecords,
+      records: Object.freeze(retainedRecords),
+    });
+  }
+}
