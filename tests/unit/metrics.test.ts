@@ -90,6 +90,9 @@ describe('trace-derived deterministic metrics', () => {
     expect(recorder.getTraceSnapshot()).toEqual({
       version: TRACE_PROTOCOL_VERSION,
       provenance: replacement,
+      firstSequence: 0,
+      nextSequence: 0,
+      droppedRecords: 0,
       records: [],
     });
     expect(recorder.getMetricsSnapshot()).toEqual({
@@ -100,5 +103,23 @@ describe('trace-derived deterministic metrics', () => {
       phases: { started: 0, completed: 0, lastCompleted: null },
       work: { cellEvaluations: 0, schedulerTransitions: 0, total: 0 },
     });
+  });
+
+  it('bounds retained trace history without losing cumulative deterministic metrics', () => {
+    const recorder = new EvidenceRecorderV1(provenance, 3);
+    for (let sequence = 0; sequence < 5; sequence += 1) {
+      recorder.record(
+        { frame: sequence, phase: 0, tick: sequence },
+        { type: 'phase-started', phaseCount: 1 },
+      );
+    }
+
+    expect(recorder.getTraceSnapshot()).toMatchObject({
+      firstSequence: 2,
+      nextSequence: 5,
+      droppedRecords: 2,
+    });
+    expect(recorder.getTraceSnapshot().records.map((record) => record.sequence)).toEqual([2, 3, 4]);
+    expect(recorder.getMetricsSnapshot().phases.started).toBe(5);
   });
 });
