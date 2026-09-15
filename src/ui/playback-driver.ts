@@ -1,7 +1,7 @@
 import type { SimulationController } from '../presentation/simulation-controller';
 
 const BASE_FRAMES_PER_SECOND = 12;
-const MAX_FRAMES_PER_RENDER = 64;
+const MAX_PHASES_PER_RENDER = 128;
 const MAX_ELAPSED_SECONDS = 0.25;
 
 export function startPlaybackDriver(
@@ -22,12 +22,13 @@ export function startPlaybackDriver(
     const view = controller.getViewModel();
 
     if (view.playing) {
-      accumulator += elapsedSeconds * BASE_FRAMES_PER_SECOND * view.playbackRate;
-      const frames = Math.min(Math.floor(accumulator), MAX_FRAMES_PER_RENDER);
-      if (frames > 0) {
-        accumulator -= frames;
-        for (let index = 0; index < frames; index += 1) {
-          controller.advancePlaybackFrame();
+      const phasesPerSecond = BASE_FRAMES_PER_SECOND * view.playbackRate * view.phaseCount;
+      accumulator += elapsedSeconds * phasesPerSecond;
+      const phases = Math.min(Math.floor(accumulator), MAX_PHASES_PER_RENDER);
+      if (phases > 0) {
+        accumulator -= phases;
+        for (let index = 0; index < phases; index += 1) {
+          controller.advancePlaybackPhase();
         }
         onAdvance();
       }
