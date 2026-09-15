@@ -24,13 +24,13 @@ These are architecture/product requirements, not optional refinements.
 
 ## Release shape
 
-### M0 — Repository substrate
+### M0 — Repository substrate — complete
 
-Toolchain, strict TypeScript structure, deterministic-core boundaries, CI, browser smoke harness, and documentation conventions.
+SD-001 established the toolchain, strict TypeScript structure, deterministic-core boundaries, CI, browser smoke harness, and documentation conventions.
 
-### M1 — Deterministic explanatory substrate + early interactive controls
+### M1 — Deterministic explanatory substrate + early interactive controls — in progress
 
-Seeded model, explicit runner/clock, phase and frame stepping, **working browser speed slider and stepping controls**, parameter registry, trace protocol, metrics, scenario serialization, and deterministic fixtures.
+SD-002 establishes the seeded teaching model, explicit runner/clock, phase and frame stepping, deterministic hashes/reset/replay, and **working browser speed slider and stepping controls**. SD-003/SD-004 still add the typed parameter/scenario and trace/metrics contracts required to complete this milestone.
 
 ### M2 — First explanatory app
 
@@ -64,10 +64,10 @@ Stable work IDs and their GitHub issues form the execution graph.
 
 ## Concurrency rules
 
-- SD-001 is foundational and should land first.
+- SD-001 is complete and no longer blocks later substrate work.
 - SD-002 and SD-003 are intentionally separable after SD-001; neither should introduce UI-owned simulation state.
-- SD-002 nevertheless owns the **earliest usable time-control vertical slice**: a thin UI over the real runner, not a second presentation architecture.
-- SD-004 may start alongside late SD-002/003 work only if it consumes explicit interfaces rather than guessing them.
+- SD-002 owns the **earliest usable time-control vertical slice**: a thin UI over the real runner, not a second presentation architecture.
+- SD-004 may start alongside late SD-003 work only if it consumes explicit interfaces rather than guessing them.
 - SD-006 and SD-007 are the main safe parallel pair once the substrate exists.
 - SD-005 should establish the generic presentation shell and **adopt/refine the already-working SD-002 controls**, not replace their semantics or defer their functionality.
 - SD-007 should make the existing phase/tick control visually meaningful by exposing real phased-scheduler selections; it should not create a competing stepping path.
@@ -94,19 +94,21 @@ Every implementation must preserve:
 
 ## Earliest interactive vertical slice
 
-Immediately after SD-002, before the mature presentation shell exists, a human should already be able to:
+SD-002 delivers a human-usable early vertical slice before the mature presentation shell exists. A viewer can:
 
 - see a simple running sand/world view;
 - pause/play it;
-- move a working speed slider into useful slow motion and fast-forward;
+- move a working speed slider from deep slow motion through fast-forward;
 - easily identify/return to `1×`;
 - advance one scheduler phase/tick;
 - advance one logical frame;
-- advance a small multi-frame amount;
-- see frame/phase counters change;
+- advance ten frames;
+- see frame/phase/tick counters and the deterministic state hash change;
 - reset deterministically.
 
-The slider should devote useful physical control resolution to sub-`1×` rates. A logarithmic, piecewise, or curated mapping is acceptable/preferred when it improves slow-motion usability, provided the runner still receives explicit playback-rate values and fixed-step physics are unchanged.
+The implemented slider is deliberately non-linear: half of its travel covers `1/32×` through `1×`, while the upper half reaches `16×`. The runner receives explicit playback-rate values and fixed-step physics remain unchanged.
+
+The default SD-002 scenario intentionally uses one phase per frame. This establishes the real phase-step contract without pretending phased sampling is already implemented; SD-007 later supplies meaningful per-phase selection through the same controls.
 
 ## Initial UX target
 
@@ -164,7 +166,7 @@ Mitigation: core tests run without DOM; runner owns advancement; renderer only c
 
 ### R3 — Variable playback changes physics semantics
 
-Mitigation: playback rate changes scheduling of fixed logical steps, not the fixed-step rules themselves.
+Mitigation: playback rate changes scheduling of fixed logical steps, not the fixed-step rules themselves. SD-002 includes direct tests that different playback rates yield the same fixed-step state sequence.
 
 ### R4 — Phase visualization conflates `not sampled` with `asleep`
 
@@ -196,10 +198,10 @@ For every issue: implement completely, test, reconcile docs, open a focused PR, 
 
 | Work ID | GitHub issue | State | Notes |
 |---|---:|---|---|
-| SD-001 | [#1](https://github.com/techrote/sandimations/issues/1) | ready | Bootstrap; first execution target |
-| SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | planned | Deterministic runner/time + early functional controls |
-| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | planned | Parameters/scenarios |
-| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | planned | Trace/metrics/adapters |
+| SD-001 | [#1](https://github.com/techrote/sandimations/issues/1) | completed | Merged via PR #12; strict webapp/test/CI substrate |
+| SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | completed | PR #13; deterministic world/runner + early functional time controls |
+| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | ready | Parameters/scenarios; next substrate issue |
+| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | planned | Trace/metrics/adapters; reconcile with SD-003 interfaces |
 | SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | planned | UI/presentation shell; refine early controls |
 | SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | planned | Sleep/wake demo |
 | SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | planned | Phased sampling demo; primary visual explanation |
