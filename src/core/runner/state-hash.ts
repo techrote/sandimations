@@ -72,10 +72,7 @@ export function hashDeterministicState(state: HashableRunnerState): string {
     const sampling = state.phasedSampling;
     canonical.push(
       `sampling=${sampling.phaseCount}:${sampling.pattern}:${sampling.seed >>> 0}:${sampling.activeCellCount}:${sampling.selectedCellCount}:${sampling.lastExecutedPhase ?? ''}:${sampling.lastExecutedTick ?? ''}:${sampling.cells
-        .map(
-          (cell) =>
-            `${cell.x},${cell.y},${cell.assignedPhase},${cell.lastSelectedTick ?? ''}`,
-        )
+        .map((cell) => `${cell.x},${cell.y},${cell.assignedPhase},${cell.lastSelectedTick ?? ''}`)
         .join(';')}`,
     );
   }
