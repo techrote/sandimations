@@ -112,7 +112,7 @@ export class InMemoryTraceSinkV1 implements TraceSinkV1 {
   }
 
   public getRecentWindow(limit: number): RecentTraceWindowV1 {
-    assertNonNegativeInteger(limit, 'Trace window limit');
+    assertNonNegativeInteger(limit, 'Trace slice limit');
     const count = Math.min(limit, this.retained);
     const offset = this.retained - count;
     const records = this.readChronologicalWindow(offset, count);
