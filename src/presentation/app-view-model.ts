@@ -272,6 +272,14 @@ function buildWorld(
     }
   }
 
+  if (sampling?.lastExecutedTick !== null && sampling !== null) {
+    for (const cell of sampling.cells) {
+      if (cell.lastSelectedTick === sampling.lastExecutedTick) {
+        markCell(markers, cell.x, cell.y, 'evaluated-now');
+      }
+    }
+  }
+
   if (sampling?.lastExecutedPhase !== null && sampling !== null) {
     for (const cell of sampling.cells) {
       if (cell.assignedPhase !== sampling.lastExecutedPhase) {
