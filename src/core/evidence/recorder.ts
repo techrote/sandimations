@@ -15,8 +15,8 @@ export class EvidenceRecorderV1 {
   private readonly trace: InMemoryTraceSinkV1;
   private readonly metrics: TraceDerivedMetricsCollectorV1;
 
-  public constructor(provenance: EvidenceProvenanceV1) {
-    this.trace = new InMemoryTraceSinkV1(provenance);
+  public constructor(provenance: EvidenceProvenanceV1, traceCapacity?: number) {
+    this.trace = new InMemoryTraceSinkV1(provenance, traceCapacity);
     this.metrics = new TraceDerivedMetricsCollectorV1(provenance);
   }
 
