@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SimulationRunner } from '../../src/core/runner/runner';
 import { createDefaultScenario } from '../../src/core/scenario/scenario';
 import { SimulationController } from '../../src/presentation/simulation-controller';
-import {
-  rateToSpeedPosition,
-  speedPositionToRate,
-} from '../../src/presentation/speed-control';
+import { rateToSpeedPosition, speedPositionToRate } from '../../src/presentation/speed-control';
 
 describe('speed control mapping', () => {
   it('reserves substantial slider travel for slow motion while preserving 1×', () => {
