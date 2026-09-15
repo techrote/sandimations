@@ -3,11 +3,7 @@ import type { SeededPrng } from '../random/prng';
 
 export type SandTieBreakMode = 'seeded-random' | 'left-first' | 'right-first';
 export type SandMoveReason =
-  | 'fall'
-  | 'slide-left'
-  | 'slide-right'
-  | 'tie-break-left'
-  | 'tie-break-right';
+  'fall' | 'slide-left' | 'slide-right' | 'tie-break-left' | 'tie-break-right';
 export type SandSkipReason = 'material-not-sand';
 export type SandBlockedReason = 'no-open-downward-target';
 
