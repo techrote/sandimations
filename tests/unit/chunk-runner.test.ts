@@ -23,7 +23,9 @@ describe('chunk sleep/wake runner integration', () => {
     runner.stepFrame();
     const afterDisturbance = runner.getChunkSchedulerSnapshot();
     expect(afterDisturbance).not.toBeNull();
-    expect(afterDisturbance?.chunks.filter((chunk) => chunk.state === 'newly-woken')).toHaveLength(4);
+    expect(afterDisturbance?.chunks.filter((chunk) => chunk.state === 'newly-woken')).toHaveLength(
+      4,
+    );
     expect(runner.getMetricsSnapshot().chunks.woken).toBe(4);
     expect(runner.getMetricsSnapshot().chunks.active).toBe(4);
     expect(runner.getMetricsSnapshot().chunks.sleeping).toBe(8);
@@ -33,14 +35,14 @@ describe('chunk sleep/wake runner integration', () => {
       .records.filter((record) => record.type === 'chunk-woken');
     expect(wakeRecords).toHaveLength(4);
     expect(wakeRecords.every((record) => record.reason === 'input-disturbance')).toBe(true);
-    expect(wakeRecords.every((record) => record.causeCell?.x === 24 && record.causeCell?.y === 3)).toBe(
-      true,
-    );
+    expect(
+      wakeRecords.every((record) => record.causeCell?.x === 24 && record.causeCell?.y === 3),
+    ).toBe(true);
 
     runner.stepFrames(28);
-    expect(runner.getChunkSchedulerSnapshot()?.chunks.some((chunk) => chunk.state === 'sleeping')).toBe(
-      true,
-    );
+    expect(
+      runner.getChunkSchedulerSnapshot()?.chunks.some((chunk) => chunk.state === 'sleeping'),
+    ).toBe(true);
     expect(runner.getMetricsSnapshot().chunks.slept).toBeGreaterThan(12);
   });
 

@@ -62,10 +62,7 @@ export function hashDeterministicState(state: HashableRunnerState): string {
   if (state.chunkScheduler !== undefined && state.chunkScheduler !== null) {
     canonical.push(
       `chunks=${state.chunkScheduler.chunkSize}:${state.chunkScheduler.chunks
-        .map(
-          (chunk) =>
-            `${chunk.id}:${chunk.state}:${chunk.quietFrames}:${chunk.reason ?? ''}`,
-        )
+        .map((chunk) => `${chunk.id}:${chunk.state}:${chunk.quietFrames}:${chunk.reason ?? ''}`)
         .join(',')}`,
     );
   }

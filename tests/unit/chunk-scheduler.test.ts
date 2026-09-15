@@ -49,7 +49,10 @@ describe('chunk sleep/wake teaching scheduler', () => {
     scheduler.wakeAtCell(2, 2, 0);
     expect(wakes).toEqual([{ id: '0:0', reason: 'input-disturbance', cause: null }]);
     expect(
-      scheduler.getSnapshot().chunks.filter((chunk) => chunk.state === 'newly-woken').map((chunk) => chunk.id),
+      scheduler
+        .getSnapshot()
+        .chunks.filter((chunk) => chunk.state === 'newly-woken')
+        .map((chunk) => chunk.id),
     ).toEqual(['0:0']);
 
     scheduler.beginFrame();

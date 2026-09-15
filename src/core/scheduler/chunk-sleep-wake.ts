@@ -204,7 +204,14 @@ export class ChunkSleepWakeScheduler {
   }
 
   private chunkAtCell(x: number, y: number): MutableChunk {
-    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= this.worldWidth || y >= this.worldHeight) {
+    if (
+      !Number.isInteger(x) ||
+      !Number.isInteger(y) ||
+      x < 0 ||
+      y < 0 ||
+      x >= this.worldWidth ||
+      y >= this.worldHeight
+    ) {
       throw new RangeError(`Cell (${x}, ${y}) is outside the chunk scheduler world.`);
     }
     const column = Math.floor(x / this.chunkSize);
@@ -228,8 +235,16 @@ export class ChunkSleepWakeScheduler {
       throw new RangeError('Wake radius must be a non-negative safe integer.');
     }
 
-    for (let row = Math.max(0, centerRow - wakeRadius); row <= Math.min(this.rows - 1, centerRow + wakeRadius); row += 1) {
-      for (let column = Math.max(0, centerColumn - wakeRadius); column <= Math.min(this.columns - 1, centerColumn + wakeRadius); column += 1) {
+    for (
+      let row = Math.max(0, centerRow - wakeRadius);
+      row <= Math.min(this.rows - 1, centerRow + wakeRadius);
+      row += 1
+    ) {
+      for (
+        let column = Math.max(0, centerColumn - wakeRadius);
+        column <= Math.min(this.columns - 1, centerColumn + wakeRadius);
+        column += 1
+      ) {
         const chunk = this.chunks[row * this.columns + column];
         if (chunk === undefined) {
           continue;
@@ -243,7 +258,11 @@ export class ChunkSleepWakeScheduler {
             reason,
             causeChunk === null
               ? null
-              : Object.freeze({ id: causeChunk.id, column: causeChunk.column, row: causeChunk.row }),
+              : Object.freeze({
+                  id: causeChunk.id,
+                  column: causeChunk.column,
+                  row: causeChunk.row,
+                }),
             causeCell,
           );
         } else if (chunk.state === 'pending-sleep') {

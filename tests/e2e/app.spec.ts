@@ -106,7 +106,9 @@ test('binds parameter controls to registry mutation semantics', async ({ page })
   await expect(page.getByTestId('parameter-current-scheduler.chunk.sleep-delay')).toHaveText('5');
 });
 
-test('shows chunks sleep, wake from a local disturbance, and return toward sleep', async ({ page }) => {
+test('shows chunks sleep, wake from a local disturbance, and return toward sleep', async ({
+  page,
+}) => {
   await page.goto('/');
   await page.getByTestId('play-pause').click();
   await page.getByTestId('reset').click();
