@@ -46,7 +46,9 @@ describe('speed control mapping', () => {
   });
 
   it('does not let repeated presentation reads perturb deterministic state', () => {
-    const sparse = new SimulationController(new SimulationRunner(createDefaultScenario(0xfeedbeef)));
+    const sparse = new SimulationController(
+      new SimulationRunner(createDefaultScenario(0xfeedbeef)),
+    );
     const noisy = new SimulationController(new SimulationRunner(createDefaultScenario(0xfeedbeef)));
 
     for (let frame = 0; frame < 16; frame += 1) {
