@@ -8,7 +8,10 @@ The current trace protocol version is `1` (`TRACE_PROTOCOL_VERSION`). An in-memo
 
 - `version` — trace protocol version;
 - `provenance` — backend, strategy, and scenario identity;
-- `records` — an ordered sequence of trace records.
+- `firstSequence` — sequence number of the oldest retained record;
+- `nextSequence` — sequence number that will be assigned to the next event;
+- `droppedRecords` — number of older records intentionally evicted by bounded retention;
+- `records` — the retained ordered trace records.
 
 Every record carries:
 
@@ -19,6 +22,19 @@ Every record carries:
 - event-specific fields.
 
 The frame/phase/tick on an event describe the work that produced that event. They do not mean “the next state shown by the UI.” For example, all records generated while executing frame `0`, phase `0`, tick `0` retain that context even though the runner advances to frame `1` after the phase completes.
+
+## Bounded in-memory retention
+
+The live in-memory sink is deliberately bounded. The default capacity is `16,384` records and the sink uses a ring buffer rather than allowing a long-running visualization to retain every cell-level event forever.
+
+Retention does **not** reset event sequence numbers and does not reduce cumulative deterministic metrics. When old records are evicted:
+
+- `firstSequence` advances;
+- `nextSequence` remains the monotonic total sequence position;
+- `droppedRecords` increases;
+- metrics continue to include all consumed events since the last deterministic reset.
+
+This makes truncation explicit to future timeline/inspector UI. SD-009 may add configurable/broader history, but it must not assume that the live trace snapshot is an unbounded event database.
 
 ## Event vocabulary
 
