@@ -50,22 +50,22 @@ Protocol v1 defines these event types:
 | `cell-blocked` | cell/material and reason movement could not proceed |
 | `chunk-activated` | stable chunk identity/coordinate and activation reason |
 | `chunk-slept` | stable chunk identity/coordinate and sleep reason |
-| `chunk-woken` | stable chunk identity/coordinate and wake reason |
+| `chunk-woken` | stable chunk identity/coordinate, wake reason, and optional structured cause chunk/cell |
 
-The chunk vocabulary is defined before SD-006 so later sleep/wake work can emit facts through the same presentation-facing contract. The current SD-004 teaching runner has no chunk scheduler and therefore does not fabricate chunk events.
+SD-006 now emits the chunk vocabulary from the live `chunk-sleep-wake-v1` teaching scheduler. `chunk-woken` may add `causeCell` for an explicit local disturbance or `causeChunk` for cross-chunk material activity. These fields are additive optional protocol-v1 evidence; presentation must not infer a missing cause.
 
 Reason strings are stable explanatory codes supplied by the producing backend. Adding a new reason string is additive; changing the meaning of an existing reason is not.
 
 ## Current teaching-model emission
 
-The SD-004 teaching model emits phase boundaries around the real runner phase. On the phase that completes a logical frame, the existing full sand scan emits observations directly from the model loop:
+The teaching backend emits phase boundaries around the real runner phase. Baseline `phase-clock-v1` uses the existing full sand scan. SD-006 `chunk-sleep-wake-v1` invokes the same cell model only for chunks that are not sleeping. In both strategies, the work that actually runs emits observations directly from the model loop:
 
 - every interior scan candidate emits `cell-examined`;
 - non-sand candidates additionally emit `cell-skipped` with `material-not-sand`;
 - a successful move emits `cell-moved` with a deterministic movement reason;
 - a sand cell with no open downward target emits `cell-blocked`.
 
-This instrumentation is observational: it must not add model randomness, alter scan order, or change the physical result. Existing SD-002 deterministic state-hash fixtures remain authoritative regression checks.
+Trace instrumentation itself is observational: it must not add model randomness or make scheduler decisions. SD-006 deliberately changes which regions execute and uses deterministic chunk-scoped ordering; this can change physical evolution relative to the baseline global scan and is documented as a teaching-model tradeoff rather than hidden.
 
 The prepared four-phase SD-003 fixture still performs sand physics only when its phase cycle completes. Earlier phases currently emit only phase boundaries. SD-007 will add genuine sparse phase selection; SD-004 deliberately does not fake those cell selections.
 

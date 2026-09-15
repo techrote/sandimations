@@ -219,6 +219,9 @@ export function mountApp(
   const skippedCounter = createCounter('Skipped', 'metrics-skipped');
   const blockedCounter = createCounter('Blocked', 'metrics-blocked');
   const workCounter = createCounter('Work units', 'metrics-work');
+  const activeChunksCounter = createCounter('Awake chunks', 'metrics-chunks-active');
+  const sleepingChunksCounter = createCounter('Sleeping chunks', 'metrics-chunks-sleeping');
+  const wokenChunksCounter = createCounter('Chunks woken', 'metrics-chunks-woken');
   const traceCounter = createCounter('Trace retained', 'trace-retained');
   metricGrid.append(
     examinedCounter.container,
@@ -226,6 +229,9 @@ export function mountApp(
     skippedCounter.container,
     blockedCounter.container,
     workCounter.container,
+    activeChunksCounter.container,
+    sleepingChunksCounter.container,
+    wokenChunksCounter.container,
     traceCounter.container,
   );
   const traceNote = document.createElement('p');
@@ -508,6 +514,9 @@ export function mountApp(
     skippedCounter.value.value = String(view.metrics.cells.skipped);
     blockedCounter.value.value = String(view.metrics.cells.blocked);
     workCounter.value.value = String(view.metrics.work.total);
+    activeChunksCounter.value.value = String(view.metrics.chunks.active);
+    sleepingChunksCounter.value.value = String(view.metrics.chunks.sleeping);
+    wokenChunksCounter.value.value = String(view.metrics.chunks.woken);
     traceCounter.value.value = String(view.traceRetention.retainedRecords);
     traceNote.textContent =
       view.traceRetention.droppedRecords === 0

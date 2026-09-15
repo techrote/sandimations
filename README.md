@@ -6,13 +6,13 @@ The project is intended to make spatial/temporal optimization strategies intuiti
 
 ## Current implementation status
 
-SD-005 builds the first reusable explanatory application shell on the completed deterministic/evidence substrate. The browser now combines the Canvas world with trace-backed overlays, deterministic work metrics and provenance, state inspectors, registry-generated parameter controls, recent evidence, and the refined time-control strip.
+SD-006 adds the first real optimization scheduler on top of the SD-005 evidence-driven shell: a deterministic chunk sleep/wake teaching model. The live demo visibly settles fixed chunks into computational dormancy, wakes only the configured neighborhood around a scripted local disturbance, and allows quiet regions to return toward sleep.
 
-The existing runner semantics are preserved: play/pause, the nonlinear `1/32×` through `16×` speed slider, an obvious `1×` return, single-phase stepping, single-frame stepping, configurable N-frame stepping, and deterministic reset all use the original SD-002 controller/runner path. Keyboard shortcuts provide the same operations without creating a second timing model.
+Sleeping chunks genuinely perform no cell evaluation; this is not a renderer mask over a hidden full scan. Chunk lifecycle state (`active`, `pending-sleep`, `sleeping`, `newly-woken`), transition causes, and awake/sleeping/woken counters all come from scheduler state and SD-004 trace/metrics evidence. The Canvas only renders those facts.
 
-Parameter widgets are generated from the SD-003 registry and visibly distinguish `live`, `next-step`, and `reset-required` behavior, including current versus queued values. Canvas overlays are built only from SD-004 evidence. The generic visual vocabulary already covers evaluated-now, active-other-phase, sleeping/inactive, newly-woken, and blocked/rejected with redundant non-color cues; the current full-scan teaching backend truthfully renders only states it actually emits rather than fabricating future scheduler facts.
+The existing SD-002/005 time controls and registry-driven parameter controls remain the only interaction path. SD-006 adds registered chunk size, sleep delay, activity threshold, and wake-neighborhood controls with explicit reset/next-step timing. The live metrics inspector now includes awake, sleeping, and cumulatively woken chunk counts.
 
-Chunk sleep/wake scheduling and real phased-sampling selection are deliberately not implemented yet. The default scenario still has one phase per frame; the phased fixture uses a four-phase clock but explicitly does not select sparse cell subsets until SD-007.
+Real phased-sampling selection is still deliberately deferred to SD-007. Its four-phase fixture remains a clock-only precursor until the genuine sparse scheduler lands.
 
 ## Initial visualization targets
 
@@ -55,7 +55,11 @@ The initial registered parameters are:
 
 - `simulation.sand.enabled` — boolean, applied live;
 - `simulation.sand.tie-break` — enum, applied at the next scheduler step;
-- `simulation.seed-variant` — integer, applied on the next explicit reset.
+- `simulation.seed-variant` — integer, applied on the next explicit reset;
+- `scheduler.chunk.size` — integer chunk dimension, applied on explicit reset;
+- `scheduler.chunk.sleep-delay` — quiet-frame delay, applied at the next scheduler step;
+- `scheduler.chunk.activity-threshold` — move threshold defining a quiet frame, applied at the next scheduler step;
+- `scheduler.chunk.wake-radius` — chunk-radius for local/cross-chunk wake propagation, applied at the next scheduler step.
 
 Scenario schema version `1` records the model/world, scheduler clock configuration, parameter values, deterministic scripted events, and separate non-authoritative presentation defaults. Supported scenario JSON is validated strictly and serialized canonically.
 
@@ -71,9 +75,9 @@ Trace protocol version `1` gives every retained event a monotonic sequence plus 
 - `cell-skipped`;
 - `cell-blocked`.
 
-The protocol also reserves explicit `chunk-activated`, `chunk-slept`, and `chunk-woken` evidence for SD-006 rather than making future UI infer chunk state from appearance.
+SD-006 now emits explicit `chunk-activated`, `chunk-slept`, and `chunk-woken` evidence from the real teaching scheduler. Wake events can include structured cause-cell or cause-chunk evidence, so presentation can explain why a region woke without re-running scheduler logic.
 
-Trace and metrics snapshots carry backend/strategy/scenario provenance. Deterministic metrics count cell work, future chunk transitions/state, and phase progress. These counters are explanatory algorithmic-work evidence; they are deliberately separate from wall-clock CPU/GPU/browser profiling.
+Trace and metrics snapshots carry backend/strategy/scenario provenance. Deterministic metrics count cell work, actual chunk transitions/state, and phase progress. These counters are explanatory algorithmic-work evidence; they are deliberately separate from wall-clock CPU/GPU/browser profiling.
 
 Live trace retention uses a bounded `16,384`-record ring. Snapshots report `firstSequence`, `nextSequence`, and `droppedRecords`, so future timeline UI can distinguish a complete retained window from an intentionally truncated one. Metrics continue accumulating across trace eviction until deterministic reset.
 
@@ -96,7 +100,7 @@ The shell exposes:
 - registry-generated parameter controls with mutation timing badges and pending-value status;
 - keyboard operation and reduced-motion handling.
 
-SD-006 and SD-007 can now add chunk sleep/wake and genuine phased sampling through the existing evidence/view-model path instead of introducing scheduler logic into the UI.
+SD-006 now drives this shell with real chunk sleep/wake evidence. SD-007 is the next primary visualization milestone and will add genuine sparse phased sampling through the same evidence/view-model path.
 
 ## Quick start on Windows
 
@@ -185,6 +189,7 @@ The `npm run lint` boundary check rejects DOM access, animation-frame scheduling
 - [`docs/VERIFY.md`](docs/VERIFY.md) — required tests and evidence.
 - [`docs/SCENARIO_SCHEMA.md`](docs/SCENARIO_SCHEMA.md) — scenario/parameter serialization and compatibility contract.
 - [`docs/TRACE_PROTOCOL.md`](docs/TRACE_PROTOCOL.md) — trace, metrics, provenance, retention, and evidence-adapter contract.
+- [`docs/CHUNK_SLEEP_WAKE.md`](docs/CHUNK_SLEEP_WAKE.md) — SD-006 teaching scheduler rules, parameters, wake causes, visualization contract, and fidelity caveats.
 - [`AGENTS.md`](AGENTS.md) — autonomous implementation and PR/merge workflow.
 
 Repository state, these documents, and the relevant GitHub issue are authoritative over chat history.

@@ -1,5 +1,6 @@
 import type { WorldSnapshot } from '../model/world';
 import type { ParameterMutationRecord, ParameterStoreSnapshot } from '../parameters/store';
+import type { ChunkSchedulerSnapshot } from '../scheduler/chunk-sleep-wake';
 
 export interface HashableRunnerState {
   readonly scenarioId: string;
@@ -11,6 +12,7 @@ export interface HashableRunnerState {
   readonly prngState: number;
   readonly world: WorldSnapshot;
   readonly parameters: ParameterStoreSnapshot;
+  readonly chunkScheduler?: ChunkSchedulerSnapshot | null;
 }
 
 function fnv1a(text: string): string {
@@ -56,6 +58,13 @@ export function hashDeterministicState(state: HashableRunnerState): string {
   }
   if (state.parameters.pendingReset.length > 0) {
     canonical.push(`reset=${state.parameters.pendingReset.map(mutationPayload).join(',')}`);
+  }
+  if (state.chunkScheduler !== undefined && state.chunkScheduler !== null) {
+    canonical.push(
+      `chunks=${state.chunkScheduler.chunkSize}:${state.chunkScheduler.chunks
+        .map((chunk) => `${chunk.id}:${chunk.state}:${chunk.quietFrames}:${chunk.reason ?? ''}`)
+        .join(',')}`,
+    );
   }
 
   return fnv1a(canonical.join('|'));

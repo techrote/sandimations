@@ -131,7 +131,7 @@ The initial vocabulary covers:
 
 The current teaching world reports neutral scan observations directly from its real sand-update loop. The runner translates those observations into trace records. This keeps the physical model independent from the trace schema while ensuring highlights and counters originate from the work actually performed.
 
-Chunk event types are defined before SD-006, but the current teaching runner does not fabricate chunk events before a chunk scheduler exists.
+SD-006 now supplies real chunk transition events from `ChunkSleepWakeScheduler`. Wake events may carry structured cause cell/chunk evidence; renderer code remains a consumer rather than a lifecycle decision-maker.
 
 See `docs/TRACE_PROTOCOL.md` for the protocol, ordering, provenance, compatibility, and work-unit definitions.
 
@@ -168,6 +168,14 @@ Reading backend or presentation snapshots is side-effect free and cannot advance
 Responsible for drawing, interaction, explanation, accessibility, responsive layout, and presentation-only choices such as grid/overlay visibility. It may interpolate or exaggerate visually between fixed simulation/evidence facts, but presentation state must never mutate or masquerade as simulation/scheduler state.
 
 SD-005 Canvas rendering consumes `WorldPresentationViewModel`; it does not inspect scheduler algorithms. Parameter inputs are generated from registry definitions and route mutations back through `SimulationController`, showing queued values explicitly rather than treating reset-required/next-step changes as already applied. Keyboard controls call the same controller operations as visible buttons. Reduced-motion affects nonessential presentation animation only.
+
+### Chunk sleep/wake scheduler
+
+`ChunkSleepWakeScheduler` lives in deterministic core state. It owns fixed chunk bounds, lifecycle state, quiet-frame counters, activity accumulation, and wake-neighborhood decisions. `SimulationRunner` asks it which chunks are evaluable, and `LogicalWorld.stepSandRegion()` performs cell work only for those regions.
+
+Chunk state is included in the deterministic runner hash. The evidence backend exposes chunk bounds/state to presentation; `buildAppPresentationViewModel()` maps explicit sleeping/newly-woken facts into the generic SD-005 overlay vocabulary. Canvas draws chunk boundaries and overlays but contains no sleep/wake thresholds or propagation rules.
+
+The SD-006 implementation uses deterministic bottom-row-to-top-row chunk ordering. Because that groups cell updates differently from the baseline global scan, exact physical equivalence is not an architecture invariant for this teaching strategy. Comparison mode must measure rather than assume divergence.
 
 ## Determinism contract
 

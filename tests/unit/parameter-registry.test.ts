@@ -10,6 +10,10 @@ describe('ParameterRegistry', () => {
   it('exposes stable metadata for the core illustrative parameters', () => {
     const registry = createCoreParameterRegistry();
     expect(registry.list().map((definition) => definition.id)).toEqual([
+      CoreParameterId.chunkActivityThreshold,
+      CoreParameterId.chunkSize,
+      CoreParameterId.chunkSleepDelay,
+      CoreParameterId.chunkWakeRadius,
       CoreParameterId.sandEnabled,
       CoreParameterId.sandTieBreak,
       CoreParameterId.seedVariant,
@@ -27,6 +31,26 @@ describe('ParameterRegistry', () => {
       kind: 'integer',
       mutation: 'reset-required',
     });
+    expect(registry.get(CoreParameterId.chunkSize)).toMatchObject({
+      kind: 'integer',
+      defaultValue: 8,
+      mutation: 'reset-required',
+    });
+    expect(registry.get(CoreParameterId.chunkSleepDelay)).toMatchObject({
+      kind: 'integer',
+      defaultValue: 3,
+      mutation: 'next-step',
+    });
+    expect(registry.get(CoreParameterId.chunkActivityThreshold)).toMatchObject({
+      kind: 'integer',
+      defaultValue: 0,
+      mutation: 'next-step',
+    });
+    expect(registry.get(CoreParameterId.chunkWakeRadius)).toMatchObject({
+      kind: 'integer',
+      defaultValue: 1,
+      mutation: 'next-step',
+    });
   });
 
   it('rejects invalid values predictably', () => {
@@ -41,6 +65,10 @@ describe('ParameterRegistry', () => {
       ParameterValidationError,
     );
     expect(() => registry.validate(CoreParameterId.seedVariant, 1.25)).toThrow(
+      ParameterValidationError,
+    );
+    expect(() => registry.validate(CoreParameterId.chunkSize, 3)).toThrow(ParameterValidationError);
+    expect(() => registry.validate(CoreParameterId.chunkWakeRadius, 3)).toThrow(
       ParameterValidationError,
     );
   });

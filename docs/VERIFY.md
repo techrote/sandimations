@@ -39,7 +39,7 @@ Trace verification should cover:
 - provenance alignment across trace and metrics snapshots;
 - exact golden traces for small human-auditable fixtures;
 - distinct examined/moved/skipped/blocked event semantics;
-- chunk activated/slept/woken vocabulary and metrics even before the live chunk scheduler exists;
+- chunk activated/slept/woken vocabulary, live scheduler transitions, structured wake causes, and current/cumulative chunk metrics;
 - reset/replay reproducing trace sequence and metrics exactly;
 - backend/presentation reads having no effect on future trace or metrics;
 - deterministic work counters remaining separate from wall-clock profiling.
@@ -74,6 +74,8 @@ A renderer need not be pixel-identical across all platforms. Prefer semantic/bro
 Use screenshot/visual regression tests selectively for stable explanatory layouts, not as a substitute for state assertions.
 
 SD-005 browser coverage additionally verifies preserved speed/phase/frame/N-frame/reset semantics, registry-driven live/next-step/reset-required controls, keyboard operation, no horizontal overflow at a representative narrow viewport, visible generic overlay controls, and reduced-motion suppression of nonessential overlay animation. Unit coverage verifies that app overlays and pending parameter states come from evidence/registry contracts and that the live presentation adapter prefers the bounded recent-evidence path when available.
+
+SD-006 verification must additionally prove deterministic active → pending-sleep → sleeping transitions, true absence of cell evaluation while every chunk is sleeping, bounded local wake behavior, cross-chunk wake causes, reset/replay identity for scheduler state/trace/metrics/hash, and browser-visible sleeping → newly-woken → returning-to-sleep state using the generic SD-005 overlays and chunk counters.
 
 ## Comparison-mode tests
 

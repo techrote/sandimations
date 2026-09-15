@@ -95,6 +95,46 @@ test('binds parameter controls to registry mutation semantics', async ({ page })
   await expect(page.getByTestId('parameter-pending-simulation.seed-variant')).not.toContainText(
     'Pending:',
   );
+
+  const sleepDelay = page.getByTestId('parameter-input-scheduler.chunk.sleep-delay');
+  await sleepDelay.fill('5');
+  await sleepDelay.press('Tab');
+  await expect(page.getByTestId('parameter-pending-scheduler.chunk.sleep-delay')).toContainText(
+    'Pending: 5',
+  );
+  await page.getByTestId('step-phase').click();
+  await expect(page.getByTestId('parameter-current-scheduler.chunk.sleep-delay')).toHaveText('5');
+});
+
+test('shows chunks sleep, wake from a local disturbance, and return toward sleep', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByTestId('play-pause').click();
+  await page.getByTestId('reset').click();
+
+  await page.getByTestId('step-count').fill('3');
+  await page.getByTestId('step-frames').click();
+  await expect
+    .poll(async () => Number(await page.getByTestId('overlay-count-sleeping').textContent()))
+    .toBeGreaterThan(0);
+  await expect(page.getByTestId('overlay-count-newly-woken')).toHaveText('0');
+
+  await page.getByTestId('step-count').fill('16');
+  await page.getByTestId('step-frames').click();
+  await expect
+    .poll(async () => Number(await page.getByTestId('overlay-count-newly-woken').textContent()))
+    .toBeGreaterThan(0);
+  await expect(page.getByTestId('metrics-chunks-woken')).toHaveText('4');
+  await expect(page.getByTestId('metrics-chunks-active')).toHaveText('4');
+  await expect(page.getByTestId('metrics-chunks-sleeping')).toHaveText('8');
+
+  await page.getByTestId('step-count').fill('28');
+  await page.getByTestId('step-frames').click();
+  await expect(page.getByTestId('overlay-count-newly-woken')).toHaveText('0');
+  await expect
+    .poll(async () => Number(await page.getByTestId('overlay-count-sleeping').textContent()))
+    .toBeGreaterThan(0);
 });
 
 test('supports keyboard operation and narrow responsive layout', async ({ page }) => {

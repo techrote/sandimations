@@ -52,6 +52,10 @@ describe('versioned scenario schema', () => {
     const scenario = normalizeScenario(source);
 
     expect(scenario.parameters).toEqual({
+      [CoreParameterId.chunkActivityThreshold]: 0,
+      [CoreParameterId.chunkSize]: 8,
+      [CoreParameterId.chunkSleepDelay]: 3,
+      [CoreParameterId.chunkWakeRadius]: 1,
       [CoreParameterId.seedVariant]: 0,
       [CoreParameterId.sandEnabled]: true,
       [CoreParameterId.sandTieBreak]: 'seeded-random',
@@ -76,6 +80,10 @@ describe('versioned scenario schema', () => {
       [CoreParameterId.seedVariant]: -1,
     };
     expect(() => normalizeScenario(invalidParameter)).toThrow(/seed-variant/i);
+
+    const invalidStrategy = plainDefault();
+    invalidStrategy.scheduler = { strategy: 'mystery-v1', phaseCount: 1 };
+    expect(() => normalizeScenario(invalidStrategy)).toThrow(/scheduler.strategy/i);
   });
 
   it('rejects ambiguous event ordering and scripted reset-required mutations', () => {
@@ -110,12 +118,14 @@ describe('versioned scenario schema', () => {
     expect(() => normalizeScenario(resetRequired)).toThrow(/reset-required/i);
   });
 
-  it('ships deterministic fixtures prepared for later sleep/wake and phased work', () => {
+  it('ships the deterministic sleep/wake demo and phased-sampling fixture', () => {
     const sleepWake = createSleepWakeFixtureScenario();
     const phased = createPhasedSamplingFixtureScenario();
 
-    expect(sleepWake.id).toBe('fixture-localized-disturbance');
+    expect(sleepWake.id).toBe('sd-006-chunk-sleep-wake');
+    expect(sleepWake.scheduler).toEqual({ strategy: 'chunk-sleep-wake-v1', phaseCount: 1 });
     expect(sleepWake.events).toHaveLength(1);
+    expect(sleepWake.presentation.notes).toMatch(/quiet chunks sleep/i);
     expect(phased.id).toBe('fixture-phased-sampling');
     expect(phased.scheduler.phaseCount).toBe(4);
     expect(phased.presentation.notes).toMatch(/does not select sparse/i);

@@ -48,6 +48,10 @@ describe('ParameterStore mutation timing', () => {
     store.requestMutation(CoreParameterId.sandTieBreak, 'left-first');
 
     expect(store.getSerializedValues()).toEqual({
+      [CoreParameterId.chunkActivityThreshold]: 0,
+      [CoreParameterId.chunkSize]: 8,
+      [CoreParameterId.chunkSleepDelay]: 3,
+      [CoreParameterId.chunkWakeRadius]: 1,
       [CoreParameterId.seedVariant]: 0,
       [CoreParameterId.sandEnabled]: false,
       [CoreParameterId.sandTieBreak]: 'seeded-random',

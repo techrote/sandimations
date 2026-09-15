@@ -21,6 +21,13 @@ export interface SandStepObserver {
   ): void;
 }
 
+export interface WorldRegion {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
 export interface WorldSnapshot {
   readonly width: number;
   readonly height: number;
@@ -74,10 +81,39 @@ export class LogicalWorld {
     tieBreak: SandTieBreakMode = 'seeded-random',
     observer?: SandStepObserver,
   ): number {
+    return this.stepSandRegion(
+      prng,
+      tieBreak,
+      { x: 0, y: 0, width: this.width, height: this.height },
+      observer,
+    );
+  }
+
+  public stepSandRegion(
+    prng: SeededPrng,
+    tieBreak: SandTieBreakMode,
+    region: WorldRegion,
+    observer?: SandStepObserver,
+  ): number {
+    if (
+      !Number.isInteger(region.x) ||
+      !Number.isInteger(region.y) ||
+      !Number.isInteger(region.width) ||
+      !Number.isInteger(region.height) ||
+      region.width < 1 ||
+      region.height < 1
+    ) {
+      throw new RangeError('World region must use integer coordinates and positive dimensions.');
+    }
+
+    const xStart = Math.max(1, region.x);
+    const xEnd = Math.min(this.width - 2, region.x + region.width - 1);
+    const yStart = Math.max(0, region.y);
+    const yEnd = Math.min(this.height - 2, region.y + region.height - 1);
     let moves = 0;
 
-    for (let y = this.height - 2; y >= 0; y -= 1) {
-      for (let x = 1; x < this.width - 1; x += 1) {
+    for (let y = yEnd; y >= yStart; y -= 1) {
+      for (let x = xStart; x <= xEnd; x += 1) {
         const material = this.get(x, y);
         observer?.examined(x, y, material);
 

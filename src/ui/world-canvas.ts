@@ -1,5 +1,6 @@
 import type {
   CellOverlayMarker,
+  ChunkPresentationRegion,
   OverlayKind,
   WorldPresentationViewModel,
 } from '../presentation/app-view-model';
@@ -70,6 +71,34 @@ function drawOverlay(
   context.restore();
 }
 
+function drawChunkBoundary(
+  context: CanvasRenderingContext2D,
+  chunk: ChunkPresentationRegion,
+): void {
+  const x = chunk.x * CELL_SIZE + 1;
+  const y = chunk.y * CELL_SIZE + 1;
+  const width = chunk.width * CELL_SIZE - 2;
+  const height = chunk.height * CELL_SIZE - 2;
+
+  context.save();
+  context.lineWidth = chunk.state === 'newly-woken' ? 3 : 2;
+  if (chunk.state === 'sleeping') {
+    context.strokeStyle = 'rgba(215, 218, 208, 0.8)';
+    context.setLineDash([5, 5]);
+  } else if (chunk.state === 'pending-sleep') {
+    context.strokeStyle = 'rgba(244, 227, 107, 0.72)';
+    context.setLineDash([9, 4]);
+  } else if (chunk.state === 'newly-woken') {
+    context.strokeStyle = 'rgba(130, 224, 157, 0.95)';
+    context.setLineDash([]);
+  } else {
+    context.strokeStyle = 'rgba(128, 215, 229, 0.48)';
+    context.setLineDash([]);
+  }
+  context.strokeRect(x, y, width, height);
+  context.restore();
+}
+
 export function renderWorld(
   canvas: HTMLCanvasElement,
   view: WorldPresentationViewModel,
@@ -104,6 +133,10 @@ export function renderWorld(
         context.strokeRect(x * CELL_SIZE + 0.5, y * CELL_SIZE + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
       }
     }
+  }
+
+  for (const chunk of view.chunks) {
+    drawChunkBoundary(context, chunk);
   }
 
   for (const marker of view.overlays) {

@@ -2,7 +2,7 @@ import './styles.css';
 import { TeachingModelEvidenceBackendV1 } from './adapters/evidence-backend';
 import { createCoreParameterRegistry } from './core/parameters/registry';
 import { SimulationRunner } from './core/runner/runner';
-import { createDefaultScenario } from './core/scenario/scenario';
+import { createSleepWakeFixtureScenario } from './core/scenario/scenario';
 import { PresentationEvidenceAdapterV1 } from './presentation/evidence-adapter';
 import { SimulationController } from './presentation/simulation-controller';
 import { mountApp } from './ui/app';
@@ -14,7 +14,7 @@ if (root === null) {
 }
 
 const registry = createCoreParameterRegistry();
-const runner = new SimulationRunner(createDefaultScenario(), registry);
+const runner = new SimulationRunner(createSleepWakeFixtureScenario(), registry);
 runner.play();
 const controller = new SimulationController(runner);
 const evidence = new PresentationEvidenceAdapterV1(new TeachingModelEvidenceBackendV1(runner));

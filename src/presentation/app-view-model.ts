@@ -5,6 +5,7 @@ import type {
 } from '../core/parameters/definitions';
 import type { ParameterRegistry } from '../core/parameters/registry';
 import type { ParameterMutationRecord } from '../core/parameters/store';
+import type { ChunkLifecycleState } from '../core/scheduler/chunk-sleep-wake';
 import type { TraceRecordV1 } from '../core/trace/protocol';
 import type {
   PresentationEvidenceViewModelV1,
@@ -19,6 +20,17 @@ export interface CellOverlayMarker {
   readonly x: number;
   readonly y: number;
   readonly kind: OverlayKind;
+}
+
+export interface ChunkPresentationRegion {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly state: ChunkLifecycleState;
+  readonly quietFrames: number;
+  readonly reason: string | null;
 }
 
 export interface OverlayLegendItem {
@@ -51,6 +63,7 @@ export interface WorldPresentationViewModel {
   readonly height: number;
   readonly cells: readonly CellVisual[];
   readonly overlays: readonly CellOverlayMarker[];
+  readonly chunks: readonly ChunkPresentationRegion[];
   readonly latestEvidenceTick: number | null;
 }
 
@@ -83,13 +96,13 @@ const LEGEND: readonly OverlayLegendItem[] = Object.freeze([
   Object.freeze({
     kind: 'sleeping',
     label: 'Sleeping / inactive',
-    description: 'Reserved for explicit scheduler sleep/inactive evidence.',
+    description: 'The scheduler explicitly marks this region computationally dormant.',
     nonColorCue: 'Cross-hatch',
   }),
   Object.freeze({
     kind: 'newly-woken',
     label: 'Newly woken',
-    description: 'Reserved for an explicit wake transition emitted by a scheduler.',
+    description: 'The scheduler explicitly woke this region during the latest logical frame.',
     nonColorCue: 'Double frame / pulse',
   }),
   Object.freeze({
@@ -195,12 +208,32 @@ function markCell(
   }
 }
 
+function markChunkCells(
+  markers: Map<string, CellOverlayMarker>,
+  chunk: PresentationEvidenceViewModelV1['scheduler']['chunks'][number],
+  kind: OverlayKind,
+): void {
+  for (let y = chunk.y; y < chunk.y + chunk.height; y += 1) {
+    for (let x = chunk.x; x < chunk.x + chunk.width; x += 1) {
+      markCell(markers, x, y, kind);
+    }
+  }
+}
+
 function buildWorld(
   simulation: SimulationViewModel,
   evidence: PresentationEvidenceViewModelV1,
 ): WorldPresentationViewModel {
   const latestEvidenceTick = evidence.traceRecords.at(-1)?.tick ?? null;
   const markers = new Map<string, CellOverlayMarker>();
+
+  for (const chunk of evidence.scheduler.chunks) {
+    if (chunk.state === 'sleeping') {
+      markChunkCells(markers, chunk, 'sleeping');
+    } else if (chunk.state === 'newly-woken') {
+      markChunkCells(markers, chunk, 'newly-woken');
+    }
+  }
 
   if (latestEvidenceTick !== null) {
     for (const record of evidence.traceRecords) {
@@ -228,6 +261,20 @@ function buildWorld(
     height: simulation.height,
     cells: simulation.cells,
     overlays: Object.freeze([...markers.values()]),
+    chunks: Object.freeze(
+      evidence.scheduler.chunks.map((chunk) =>
+        Object.freeze({
+          id: chunk.id,
+          x: chunk.x,
+          y: chunk.y,
+          width: chunk.width,
+          height: chunk.height,
+          state: chunk.state,
+          quietFrames: chunk.quietFrames,
+          reason: chunk.reason,
+        }),
+      ),
+    ),
     latestEvidenceTick,
   });
 }
@@ -250,8 +297,14 @@ function summarizeRecord(record: TraceRecordV1): string {
       return `Activated chunk ${record.chunk.id} (${record.reason})`;
     case 'chunk-slept':
       return `Slept chunk ${record.chunk.id} (${record.reason})`;
-    case 'chunk-woken':
-      return `Woke chunk ${record.chunk.id} (${record.reason})`;
+    case 'chunk-woken': {
+      const cause = record.causeChunk
+        ? ` from chunk ${record.causeChunk.id}`
+        : record.causeCell
+          ? ` at cell ${record.causeCell.x},${record.causeCell.y}`
+          : '';
+      return `Woke chunk ${record.chunk.id} (${record.reason}${cause})`;
+    }
   }
 }
 

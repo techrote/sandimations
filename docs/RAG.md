@@ -34,7 +34,7 @@ SD-002 established the seeded teaching model, explicit runner/clock, phase and f
 
 ### M2 — First explanatory app — in progress
 
-SD-005 completed the generic evidence-driven application shell: responsive Canvas presentation, polished time controls, registry-derived parameter controls, deterministic work/provenance inspectors, recent evidence, and a non-color-only overlay vocabulary. SD-006 and SD-007 are now both ready to add the chunk sleep/wake and phased-sampling schedulers/demos through those landed presentation/evidence contracts.
+SD-005 completed the generic evidence-driven application shell. SD-006 adds the first real optimization demo: deterministic chunk sleep/wake state, actual avoided cell evaluation while regions sleep, local/cross-chunk wake causes, registered scheduler parameters, chunk metrics, and trace-backed visualization. SD-007 is now the next primary target: the signature phased-sampling scheduler and phase-by-phase visual explanation.
 
 ### M3 — Comparative and presentation tooling
 
@@ -55,8 +55,8 @@ Stable work IDs and their GitHub issues form the execution graph.
 | SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | Typed parameter registry, scenario schema, serialization | SD-001 | complete |
 | SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | Trace protocol, metrics, backend/presentation adapter contracts | SD-001; consumes SD-002/003 | complete |
 | SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | UI shell, Canvas renderer, legend, inspectors, **refinement of SD-002 time controls** | SD-002, SD-003, SD-004 | complete |
-| SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | Chunk sleep/wake scheduler teaching model + demo | SD-002, SD-004; integrates with SD-003/005 | ready; may overlap SD-007 |
-| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | Phased-sampling teaching model + **primary visual/phase-step explanation** | SD-002, SD-004; integrates with SD-003/005 | ready; may overlap SD-006 |
+| SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | Chunk sleep/wake scheduler teaching model + demo | SD-002, SD-004; integrates with SD-003/005 | complete |
+| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | Phased-sampling teaching model + **primary visual/phase-step explanation** | SD-002, SD-004; integrates with SD-003/005 | next |
 | SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | Baseline-vs-optimized comparison and divergence/work instrumentation | SD-006, SD-007 | after both demos expose stable metrics |
 | SD-009 | [#9](https://github.com/techrote/sandimations/issues/9) | Scenario presets, timeline, shareable URL state, presentation mode | SD-003, SD-005, SD-006, SD-007; comparison scenarios may use SD-008 | after stable scenario/UI contracts |
 | SD-010 | [#10](https://github.com/techrote/sandimations/issues/10) | Accessibility, performance, browser hardening, static deployment | SD-005 through SD-009 | final release hardening |
@@ -66,9 +66,10 @@ Stable work IDs and their GitHub issues form the execution graph.
 
 - SD-001 through SD-005 are complete substrate/presentation-foundation work.
 - SD-005's generic app/view-model contract is now the presentation path: later scheduler work must supply structured evidence rather than add algorithm logic to Canvas/DOM code.
-- SD-006 and SD-007 are now the main safe parallel pair. Both should extend the common evidence/overlay vocabulary instead of introducing a competing state or stepping path.
+- SD-006 is complete and demonstrates the pattern later schedulers must follow: scheduler-owned state, real work avoidance, SD-004 evidence, and generic SD-005 presentation.
+- SD-007 is the next primary issue and should extend the common evidence/overlay vocabulary instead of introducing a competing state or stepping path.
 - SD-005 must **adopt/refine the already-working SD-002 controls**, not replace their simulation semantics or defer their functionality.
-- SD-006 must emit chunk activate/sleep/wake facts through the SD-004 event vocabulary rather than inventing a parallel evidence channel.
+- SD-006 emits chunk activate/sleep/wake facts through the SD-004 event vocabulary; later work must preserve this common evidence channel.
 - SD-007 must make the existing phase/tick control visually meaningful by exposing real per-phase scheduler selections through the SD-004 evidence path; it must not create a competing stepping path or visual-only fake sampling mask.
 - SD-008 requires both scheduler stories to expose stable metrics/provenance through the common evidence contract.
 - SD-009 must not become a second state-management system; URL/preset state serializes canonical scenario/parameter/view models. Its timeline must respect explicit bounded trace retention rather than assuming an infinite live event log.
@@ -177,6 +178,16 @@ The current full-scan backend emits evaluated and blocked cell facts, so those a
 
 For live refresh, `TeachingModelEvidenceBackendV1` exposes an additive bounded recent-trace read and the presentation adapter defaults to the newest 512 records. This resolves R10 without changing the canonical full trace/export contract or cumulative metrics.
 
+## SD-006 chunk sleep/wake scheduler
+
+SD-006 introduces strategy `chunk-sleep-wake-v1` as an explicitly labelled teaching model. A fixed chunk partition owns `active`, `pending-sleep`, `sleeping`, and `newly-woken` lifecycle states. Quiet-frame delay, activity threshold, wake radius, and reset-required chunk size are registered SD-003 parameters.
+
+Sleeping chunks are excluded from cell evaluation entirely, so reduced `cells.examined` is genuine deterministic work avoidance. Local deterministic inputs wake a bounded neighborhood and cross-chunk material motion can propagate wake state. `chunk-woken` records carry optional cause-cell/cause-chunk evidence. Scheduler state is included in the deterministic hash and is reproduced by reset/replay tests.
+
+The live scenario `sd-006-chunk-sleep-wake` settles chunks, applies a scripted disturbance at tick 18 / cell `(24,3)`, exposes awake/sleeping/woken counters, then demonstrates regions returning toward sleep. Canvas chunk boundaries and cell overlays come from backend/presentation state; the renderer does not decide lifecycle state.
+
+Chunk-scoped evaluation changes update ordering relative to the baseline global scan, so physical identity is **not** claimed. SD-008 will measure divergence explicitly. See `docs/CHUNK_SLEEP_WAKE.md` for the full teaching-model contract and fidelity caveat.
+
 ## Initial UX target
 
 The mature default app should make the following flow possible without reading documentation:
@@ -278,8 +289,8 @@ For every issue: implement completely, test, reconcile docs, open a focused PR, 
 | SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | completed | PR #14; typed parameters, canonical scenarios/events, Windows shortcuts |
 | SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | completed | PR #15; versioned traces/metrics/provenance + bounded evidence backend seam |
 | SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | completed | PR #16; evidence-driven responsive shell, registry controls, overlays/inspectors, refined time controls |
-| SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | ready | Sleep/wake scheduler/demo over landed SD-004/005 evidence + overlay contracts |
-| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | ready | Phased sampling scheduler/demo; primary visual explanation over landed SD-004/005 contracts |
+| SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | completed | PR #17; real chunk dormancy/wake teaching scheduler, parameters, trace causes, metrics and visualization |
+| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | ready / next | Phased sampling scheduler/demo; primary visual explanation over landed SD-004/005/006 contracts |
 | SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | planned | Comparison mode |
 | SD-009 | [#9](https://github.com/techrote/sandimations/issues/9) | planned | Presets/timeline/share |
 | SD-010 | [#10](https://github.com/techrote/sandimations/issues/10) | planned | Hardening/deploy |

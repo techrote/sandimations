@@ -83,6 +83,8 @@ export interface ChunkWokenEventV1 {
   readonly type: 'chunk-woken';
   readonly chunk: ChunkRefV1;
   readonly reason: string;
+  readonly causeChunk?: ChunkRefV1;
+  readonly causeCell?: CellRefV1;
 }
 
 export type TraceEventV1 =

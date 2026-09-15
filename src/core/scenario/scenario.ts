@@ -1,5 +1,6 @@
 import { Material, type Material as MaterialValue } from '../model/material';
 import type { WorldSnapshot } from '../model/world';
+import { CoreParameterId } from '../parameters/definitions';
 import { createCoreParameterRegistry } from '../parameters/registry';
 import {
   SCENARIO_SCHEMA_VERSION,
@@ -89,30 +90,37 @@ export function createSleepWakeFixtureScenario(seed = 0x51ee91a5): CoreScenario 
     cells[y * width + x] = material;
   };
 
-  for (let y = 15; y <= 18; y += 1) {
-    for (let x = 4; x <= 14; x += 1) {
-      if (y >= 19 - Math.floor((x - 4) / 3)) {
-        set(x, y, Material.Sand);
-      }
-    }
+  for (let x = 4; x <= 13; x += 1) {
+    set(x, 18, Material.Sand);
   }
-  for (let x = 18; x <= 27; x += 1) {
+  for (let x = 5; x <= 12; x += 1) {
+    set(x, 17, Material.Sand);
+  }
+  for (let x = 19; x <= 28; x += 1) {
     set(x, 15, Material.Wall);
   }
 
+  const parameters = {
+    ...coreDefaults(),
+    [CoreParameterId.chunkSize]: 8,
+    [CoreParameterId.chunkSleepDelay]: 3,
+    [CoreParameterId.chunkActivityThreshold]: 0,
+    [CoreParameterId.chunkWakeRadius]: 1,
+  };
+
   return normalizeScenario({
     version: SCENARIO_SCHEMA_VERSION,
-    id: 'fixture-localized-disturbance',
-    title: 'Localized disturbance fixture',
+    id: 'sd-006-chunk-sleep-wake',
+    title: 'Chunk sleep / wake teaching model',
     seed: seed >>> 0,
     simulation: { model: 'falling-sand-v1' },
-    scheduler: { strategy: 'phase-clock-v1', phaseCount: 1 },
+    scheduler: { strategy: 'chunk-sleep-wake-v1', phaseCount: 1 },
     world: freezeWorld(width, height, cells),
-    parameters: coreDefaults(),
+    parameters,
     events: [
       {
         type: 'input',
-        tick: 12,
+        tick: 18,
         order: 0,
         input: { type: 'set-cell', x: 24, y: 3, material: Material.Sand },
       },
@@ -120,7 +128,8 @@ export function createSleepWakeFixtureScenario(seed = 0x51ee91a5): CoreScenario 
     presentation: {
       defaultPlaybackRate: 0.5,
       showGrid: true,
-      notes: 'Prepared for SD-006 sleep/wake work; no chunk sleeping exists yet.',
+      notes:
+        'Teaching model: quiet chunks sleep after a deterministic delay; the scripted local disturbance wakes its configured chunk neighborhood and material crossing chunk boundaries propagates wake state.',
     },
   });
 }

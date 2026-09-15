@@ -2,6 +2,7 @@ import type { DeterministicMetricsSnapshotV1 } from '../core/metrics/metrics';
 import type { WorldSnapshot } from '../core/model/world';
 import type { ParameterStoreSnapshot } from '../core/parameters/store';
 import type { SimulationRunner } from '../core/runner/runner';
+import type { ChunkLifecycleState } from '../core/scheduler/chunk-sleep-wake';
 import {
   TRACE_PROTOCOL_VERSION,
   type EvidenceProvenanceV1,
@@ -25,7 +26,12 @@ export interface SchedulerChunkStateV1 {
   readonly id: string;
   readonly x: number;
   readonly y: number;
-  readonly state: 'active' | 'sleeping';
+  readonly width: number;
+  readonly height: number;
+  readonly column: number;
+  readonly row: number;
+  readonly state: ChunkLifecycleState;
+  readonly quietFrames: number;
   readonly reason: string | null;
 }
 
@@ -91,13 +97,29 @@ function schedulerState(
   provenance: EvidenceProvenanceV1,
 ): SchedulerEvidenceStateV1 {
   const snapshot = runner.getSnapshot();
+  const chunks = snapshot.chunkScheduler?.chunks ?? [];
   return Object.freeze({
     strategyId: provenance.strategyId,
     frame: snapshot.frame,
     nextPhase: snapshot.phase,
     tick: snapshot.tick,
     phaseCount: snapshot.phaseCount,
-    chunks: Object.freeze([]),
+    chunks: Object.freeze(
+      chunks.map((chunk) =>
+        Object.freeze({
+          id: chunk.id,
+          x: chunk.x,
+          y: chunk.y,
+          width: chunk.width,
+          height: chunk.height,
+          column: chunk.column,
+          row: chunk.row,
+          state: chunk.state,
+          quietFrames: chunk.quietFrames,
+          reason: chunk.reason,
+        }),
+      ),
+    ),
   });
 }
 
