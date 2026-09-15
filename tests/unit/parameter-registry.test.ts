@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  CoreParameterId,
-  type ParameterDefinition,
-} from '../../src/core/parameters/definitions';
+import { CoreParameterId, type ParameterDefinition } from '../../src/core/parameters/definitions';
 import {
   createCoreParameterRegistry,
   ParameterRegistry,
@@ -70,9 +67,7 @@ describe('ParameterRegistry', () => {
     expect(() => registry.validate(CoreParameterId.seedVariant, 1.25)).toThrow(
       ParameterValidationError,
     );
-    expect(() => registry.validate(CoreParameterId.chunkSize, 3)).toThrow(
-      ParameterValidationError,
-    );
+    expect(() => registry.validate(CoreParameterId.chunkSize, 3)).toThrow(ParameterValidationError);
     expect(() => registry.validate(CoreParameterId.chunkWakeRadius, 3)).toThrow(
       ParameterValidationError,
     );
