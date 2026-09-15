@@ -9,7 +9,7 @@ import {
   type TraceRecordV1,
   type TraceSnapshotV1,
 } from '../trace/protocol';
-import { InMemoryTraceSinkV1 } from '../trace/sink';
+import { InMemoryTraceSinkV1, type RecentTraceWindowV1 } from '../trace/sink';
 
 export class EvidenceRecorderV1 {
   private readonly trace: InMemoryTraceSinkV1;
@@ -33,6 +33,10 @@ export class EvidenceRecorderV1 {
 
   public getTraceSnapshot(): TraceSnapshotV1 {
     return this.trace.getSnapshot();
+  }
+
+  public getRecentTraceWindow(limit: number): RecentTraceWindowV1 {
+    return this.trace.getRecentWindow(limit);
   }
 
   public getMetricsSnapshot(): DeterministicMetricsSnapshotV1 {
