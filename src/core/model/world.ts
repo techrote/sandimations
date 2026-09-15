@@ -109,7 +109,14 @@ export class LogicalWorld {
   }
 
   private assertCoordinate(x: number, y: number): void {
-    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= this.width || y >= this.height) {
+    if (
+      !Number.isInteger(x) ||
+      !Number.isInteger(y) ||
+      x < 0 ||
+      y < 0 ||
+      x >= this.width ||
+      y >= this.height
+    ) {
       throw new RangeError(`Coordinate (${x}, ${y}) is outside the world.`);
     }
   }
