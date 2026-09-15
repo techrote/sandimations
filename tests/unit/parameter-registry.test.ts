@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CoreParameterId, type ParameterDefinition } from '../../src/core/parameters/definitions';
+import {
+  CoreParameterId,
+  type ParameterDefinition,
+} from '../../src/core/parameters/definitions';
 import {
   createCoreParameterRegistry,
   ParameterRegistry,
