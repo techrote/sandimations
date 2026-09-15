@@ -8,7 +8,7 @@ function scenarioWithPhases(phaseCount: number): CoreScenario {
   return Object.freeze({
     ...base,
     id: `phase-fixture-${phaseCount}`,
-    phaseCount,
+    scheduler: Object.freeze({ ...base.scheduler, phaseCount }),
   });
 }
 

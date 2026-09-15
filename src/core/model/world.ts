@@ -1,6 +1,8 @@
 import { isMaterial, Material, type Material as MaterialValue } from './material';
 import type { SeededPrng } from '../random/prng';
 
+export type SandTieBreakMode = 'seeded-random' | 'left-first' | 'right-first';
+
 export interface WorldSnapshot {
   readonly width: number;
   readonly height: number;
@@ -49,7 +51,7 @@ export class LogicalWorld {
     this.cells[this.indexOf(x, y)] = material;
   }
 
-  public stepSand(prng: SeededPrng): number {
+  public stepSand(prng: SeededPrng, tieBreak: SandTieBreakMode = 'seeded-random'): number {
     let moves = 0;
 
     for (let y = this.height - 2; y >= 0; y -= 1) {
@@ -68,7 +70,7 @@ export class LogicalWorld {
         const rightOpen = this.get(x + 1, y + 1) === Material.Empty;
 
         if (leftOpen && rightOpen) {
-          const targetX = prng.nextBoolean() ? x + 1 : x - 1;
+          const targetX = this.chooseTieBreakTarget(x, tieBreak, prng);
           this.moveSand(x, y, targetX, y + 1);
           moves += 1;
         } else if (leftOpen) {
@@ -97,6 +99,16 @@ export class LogicalWorld {
       height: this.height,
       cells: Object.freeze(cells),
     });
+  }
+
+  private chooseTieBreakTarget(x: number, tieBreak: SandTieBreakMode, prng: SeededPrng): number {
+    if (tieBreak === 'left-first') {
+      return x - 1;
+    }
+    if (tieBreak === 'right-first') {
+      return x + 1;
+    }
+    return prng.nextBoolean() ? x + 1 : x - 1;
   }
 
   private moveSand(fromX: number, fromY: number, toX: number, toY: number): void {

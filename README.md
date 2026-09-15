@@ -6,11 +6,11 @@ The project is intended to make spatial/temporal optimization strategies intuiti
 
 ## Current implementation status
 
-SD-002 provides the first functional simulation vertical slice: a small deterministic sand teaching world, a model-owned seeded PRNG, explicit runner phase/frame semantics, deterministic state hashes/reset/replay, and immediately usable browser time controls.
+SD-003 adds the schema-driven configuration substrate on top of the SD-002 deterministic sand runner. The project now has a typed parameter registry, explicit `live` / `next-step` / `reset-required` mutation semantics, versioned validated scenario documents, canonical deterministic JSON serialization, ordered scripted parameter/input events, and prepared fixtures for later sleep/wake and phased-sampling work.
 
-The current controls include play/pause, a speed slider from `1/32×` through `16×`, a direct `1×` button, one-phase/tick stepping, one-frame stepping, `+10` frame stepping, reset, and visible frame/phase/tick/hash counters.
+The current browser controls remain the SD-002 vertical slice: play/pause, a speed slider from `1/32×` through `16×`, a direct `1×` button, one-phase/tick stepping, one-frame stepping, `+10` frame stepping, reset, and visible frame/phase/tick/hash counters.
 
-Chunk sleep/wake scheduling and real phased-sampling selection are deliberately not implemented yet. The current scenario has one phase per frame; the existing tick/phase control exercises the real generic runner contract that SD-007 will later make visually meaningful.
+Chunk sleep/wake scheduling and real phased-sampling selection are deliberately not implemented yet. The default scenario still has one phase per frame; the phased fixture uses a four-phase clock but explicitly does not select sparse cell subsets until SD-007.
 
 ## Initial visualization targets
 
@@ -22,16 +22,16 @@ Chunk sleep/wake scheduling and real phased-sampling selection are deliberately 
 
 - deterministic fixed-step simulation independent of rendering;
 - pause, realtime, slow motion, fast-forward, single-phase stepping, single-frame stepping, and multi-frame stepping;
-- typed live parameter registry with live-safe / next-step / reset-required mutation semantics;
+- typed live parameter registry with live / next-step / reset-required mutation semantics;
 - inspectable simulation, scheduler, and visualization state kept separate;
 - structured trace/instrumentation events rather than visualization-owned algorithm logic;
 - scenario/preset system with reproducible seeds and eventually shareable URLs;
 - architecture that can later consume captured CyberSand traces or a real C++/WASM core without replacing the explanatory UI;
 - accessibility, responsive presentation, and automated verification from the outset.
 
-## SD-002 teaching model and time semantics
+## Deterministic teaching model and time semantics
 
-The current material model is intentionally small: `empty`, `wall`, and `sand`. Sand falls vertically when possible and otherwise chooses an available down-diagonal direction; when both diagonals are available, the tie is decided by the explicit seeded PRNG. This is an explanatory model, not a claim that these are the exact current CyberSand material rules.
+The current material model is intentionally small: `empty`, `wall`, and `sand`. Sand falls vertically when possible and otherwise chooses an available down-diagonal direction. The tie-break mode is now a registered parameter: seeded-random by default, with deterministic left-first/right-first alternatives available through the core API. This is an explanatory model, not a claim that these are the exact current CyberSand material rules.
 
 The deterministic core never reads browser time, schedules animation frames, or changes its physics according to playback rate. A browser-only playback driver decides when to request another fixed logical frame from the runner.
 
@@ -40,18 +40,58 @@ Runner semantics:
 - `tick` counts scheduler phase advances;
 - `phase` identifies the next phase in the current logical frame;
 - completing the configured phase cycle advances the sand model once and increments `frame`;
-- the SD-002 default scenario uses one phase per frame;
+- the default scenario uses one phase per frame;
 - `stepPhase()`, `stepFrame()`, and `stepFrames(n)` pause continuous playback before advancing exactly the requested logical work;
-- `reset()` restores the seeded world/PRNG/frame/phase/tick state and pauses playback while preserving the chosen playback rate;
-- play/pause and playback-rate changes are deliberately excluded from the deterministic state hash because they do not alter simulation state.
+- play/pause and playback-rate changes are excluded from deterministic state hashes because they do not alter simulation state;
+- parameter values and pending deterministic mutations do contribute to deterministic state when they can alter present/future simulation behavior.
 
 The speed slider is deliberately non-linear. Half of its travel is devoted to `1/32×` through `1×`, while the upper half reaches `16×`, so useful slow-motion values are not compressed into a few pixels.
 
-SD-003 will formalize versioned scenario/parameter serialization. The SD-002 `CoreScenario` contract is intentionally minimal and internal.
+## Parameters and scenarios
+
+The initial registered parameters are:
+
+- `simulation.sand.enabled` — boolean, applied live;
+- `simulation.sand.tie-break` — enum, applied at the next scheduler step;
+- `simulation.seed-variant` — integer, applied on the next explicit reset.
+
+Scenario schema version `1` records the model/world, scheduler clock configuration, parameter values, deterministic scripted events, and separate non-authoritative presentation defaults. Supported scenario JSON is validated strictly and serialized canonically.
+
+See [`docs/SCENARIO_SCHEMA.md`](docs/SCENARIO_SCHEMA.md) for the field contract, event ordering rules, mutation timing, compatibility policy, and prepared fixture descriptions.
+
+## Quick start on Windows
+
+The repository includes double-clickable command wrappers. They are thin wrappers around the canonical npm commands.
+
+First-time setup:
+
+```text
+Setup.cmd
+```
+
+This checks for Node/npm and runs the exact lockfile install (`npm ci`).
+
+Normal launch:
+
+```text
+Run.cmd
+```
+
+`Run.cmd` automatically invokes setup when dependencies are missing, then starts Vite and opens the app in the default browser.
+
+Repository verification:
+
+```text
+Verify.cmd
+```
+
+The command files are forced to CRLF line endings through `.gitattributes` for reliable Windows checkout behavior.
 
 ## Development
 
 Use Node.js 24 for the repository and CI. The package declares a minimum Node version of 22.12.0.
+
+The canonical cross-platform commands remain:
 
 ```bash
 npm ci
@@ -83,7 +123,7 @@ CI performs a clean `npm ci` install from `package-lock.json`, runs formatting/s
 The current implementation follows this dependency direction:
 
 ```text
-src/core/            deterministic world, PRNG, scenario input and runner
+src/core/            deterministic world, PRNG, parameter/scenario state and runner
     ↓
 src/presentation/    browser-independent controller/view-model and speed mapping
     ↓
@@ -92,7 +132,7 @@ src/ui/              DOM/canvas rendering and wall-clock playback scheduling
 src/main.ts          composition entry point
 ```
 
-Future scheduler, trace, parameter, serialized-scenario, and backend-adapter modules remain governed by `docs/ARCHITECTURE.md` and their own issues.
+Future scheduler, trace, backend-adapter, and mature parameter-control UI work remain governed by `docs/ARCHITECTURE.md` and their own issues.
 
 The `npm run lint` boundary check rejects DOM access, animation-frame scheduling, hidden randomness, wall-clock reads, and timer scheduling from `src/core/`.
 
@@ -102,6 +142,7 @@ The `npm run lint` boundary check rejects DOM access, animation-frame scheduling
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architectural boundaries and contracts.
 - [`docs/PRODUCT.md`](docs/PRODUCT.md) — educational goals, visual semantics, interaction model, and scope.
 - [`docs/VERIFY.md`](docs/VERIFY.md) — required tests and evidence.
+- [`docs/SCENARIO_SCHEMA.md`](docs/SCENARIO_SCHEMA.md) — scenario/parameter serialization and compatibility contract.
 - [`AGENTS.md`](AGENTS.md) — autonomous implementation and PR/merge workflow.
 
 Repository state, these documents, and the relevant GitHub issue are authoritative over chat history.

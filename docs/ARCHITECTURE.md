@@ -66,21 +66,51 @@ The initial runner makes phase and frame separate concepts without implementing 
 - `tick` is the monotonic count of executed scheduler phases;
 - `phase` is the zero-based next phase in the current logical frame;
 - completing the configured phase cycle advances the teaching-world physics once and increments `frame`;
-- the default SD-002 scenario has `phaseCount = 1`; multi-phase behavior is exercised only as a generic runner fixture until SD-007 supplies real phased selection;
+- the default scenario has `phaseCount = 1`; a prepared SD-003 fixture has a four-phase clock, but sparse phase selection remains deferred to SD-007;
 - manual step commands pause continuous playback before advancing exactly the requested logical work;
 - browser playback scheduling lives outside `src/core/`; it requests fixed logical frames according to the selected rate;
 - playback rate and play/pause state are controls, not physics inputs, and are excluded from deterministic state hashes;
-- reset restores seeded world/PRNG/counters and pauses playback while preserving the selected rate.
+- reset reconstructs the world, PRNG, counters, event cursor, and parameter store from the scenario baseline plus any already-applied reset-required configuration, while preserving the selected playback rate and pausing execution.
 
 ### Parameter registry
 
 Parameters are schema-driven. UI controls are generated from or bound to parameter definitions rather than owning settings themselves.
 
-Suggested mutation modes:
+Mutation modes are:
 
-- `live`: takes effect immediately without invalidating deterministic state;
-- `next-step`: queued and applied at the next deterministic step boundary;
-- `reset-required`: changes scenario/configuration state and requires an explicit reset/rebuild.
+- `live`: validated value becomes current immediately for the running simulation;
+- `next-step`: mutation is queued in deterministic request order and applied at the next scheduler phase boundary before that phase executes;
+- `reset-required`: mutation is queued until explicit runner reset, then folded into persistent reset configuration before deterministic parameter/world/PRNG/counter reconstruction.
+
+A reset clears runtime live/next-step experimentation back to the scenario's initial parameter values. Applied reset-required configuration persists across subsequent resets until a new scenario is loaded. This lets scripted live/next-step events replay from the same baseline after reset.
+
+Definitions also declare stable IDs, labels/help, value kinds, bounds/options/defaults, and serialization behavior. Unknown parameter IDs and invalid values fail closed. Registry ordering uses a locale-independent code-point comparison rather than browser/OS locale collation.
+
+#### SD-003 concrete parameter semantics
+
+The first registered parameters intentionally exercise all mutation modes without implementing future optimization systems:
+
+- `simulation.sand.enabled` — live boolean controlling whether a completed frame performs sand motion;
+- `simulation.sand.tie-break` — next-step enum selecting seeded-random, left-first, or right-first diagonal resolution;
+- `simulation.seed-variant` — reset-required integer XORed into the scenario seed during deterministic reconstruction.
+
+Current values and pending deterministic mutations contribute to state hashing whenever they differ from the all-default/no-pending state. This preserves the SD-002 default hash fixtures while distinguishing states whose future behavior differs.
+
+### Scenario contract
+
+Scenario documents are data-first, versioned, validated, and canonically serializable. Schema version `1` separates:
+
+- simulation model/world data;
+- scheduler strategy/clock configuration;
+- registered parameter values;
+- deterministic scripted input/parameter events;
+- presentation defaults.
+
+Presentation defaults are non-authoritative: they may suggest playback/view state but are not simulation inputs.
+
+Scripted events are ordered by `(tick, order)` and are applied before the scheduled phase executes. Duplicate schedule positions are invalid. Version 1 permits scripted live/next-step parameter mutations and deterministic input events; reset-required parameter changes belong in initial scenario parameters rather than hiding a reset inside event playback.
+
+`serializeScenario()` first validates/normalizes and then emits canonical JSON with stable object-key ordering. `deserializeScenario()` parses and passes through the same validator. Unsupported versions are rejected rather than interpreted heuristically. See `docs/SCENARIO_SCHEMA.md` for the compatibility policy.
 
 ### Trace protocol
 
@@ -108,9 +138,9 @@ For the same:
 - ordered parameter mutations;
 - runner commands;
 
-…the core must produce the same logical states, trace events, and metrics regardless of browser refresh rate or render cadence.
+…the core must produce the same logical states, trace events, and metrics regardless of browser refresh rate, render cadence, OS locale, or browser locale.
 
-Use an explicit model-owned PRNG. No hidden `Math.random()` calls are allowed in deterministic core code.
+Use an explicit model-owned PRNG. No hidden `Math.random()` calls are allowed in deterministic core code. Scenario normalization/serialization must not introduce wall-clock timestamps, random identifiers, locale-dependent ordering, or browser state.
 
 ## Baseline / optimized comparison
 
