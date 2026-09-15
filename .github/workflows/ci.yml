@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - sd-001-bootstrap
 
 permissions:
   contents: read
