@@ -30,7 +30,7 @@ SD-001 established the toolchain, strict TypeScript structure, deterministic-cor
 
 ### M1 — Deterministic explanatory substrate + early interactive controls — in progress
 
-SD-002 establishes the seeded teaching model, explicit runner/clock, phase and frame stepping, deterministic hashes/reset/replay, and **working browser speed slider and stepping controls**. SD-003/SD-004 still add the typed parameter/scenario and trace/metrics contracts required to complete this milestone.
+SD-002 established the seeded teaching model, explicit runner/clock, phase and frame stepping, deterministic hashes/reset/replay, and **working browser speed slider and stepping controls**. SD-003 added the typed parameter registry, deterministic mutation timing, versioned/canonical scenario serialization, scripted event replay, and fixture scenarios. SD-004 is the remaining M1 work: trace protocol, deterministic metrics, and backend/presentation adapter contracts.
 
 ### M2 — First explanatory app
 
@@ -51,9 +51,9 @@ Stable work IDs and their GitHub issues form the execution graph.
 | Work ID | Issue | Scope | Depends on | Parallelism |
 |---|---:|---|---|---|
 | SD-001 | [#1](https://github.com/techrote/sandimations/issues/1) | Bootstrap TypeScript/Vite/test/CI substrate | none | first |
-| SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | Deterministic world, runner, **early functional speed/step control vertical slice** | SD-001 | parallel with SD-003 after interfaces align |
-| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | Typed parameter registry, scenario schema, serialization | SD-001 | parallel with SD-002 |
-| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | Trace protocol, metrics, backend/presentation adapter contracts | SD-001; coordinate with SD-002/003 | once core interfaces stabilize |
+| SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | Deterministic world, runner, **early functional speed/step control vertical slice** | SD-001 | complete |
+| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | Typed parameter registry, scenario schema, serialization | SD-001 | complete |
+| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | Trace protocol, metrics, backend/presentation adapter contracts | SD-001; consume SD-002/003 contracts | ready |
 | SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | UI shell, Canvas renderer, legend, inspectors, **refinement of SD-002 time controls** | SD-002, SD-003, SD-004 | presentation track |
 | SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | Chunk sleep/wake scheduler teaching model + demo | SD-002, SD-004; integrates with SD-003/005 | can overlap SD-007 |
 | SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | Phased-sampling teaching model + **primary visual/phase-step explanation** | SD-002, SD-004; integrates with SD-003/005 | can overlap SD-006 |
@@ -64,11 +64,9 @@ Stable work IDs and their GitHub issues form the execution graph.
 
 ## Concurrency rules
 
-- SD-001 is complete and no longer blocks later substrate work.
-- SD-002 and SD-003 are intentionally separable after SD-001; neither should introduce UI-owned simulation state.
-- SD-002 owns the **earliest usable time-control vertical slice**: a thin UI over the real runner, not a second presentation architecture.
-- SD-004 may start alongside late SD-003 work only if it consumes explicit interfaces rather than guessing them.
-- SD-006 and SD-007 are the main safe parallel pair once the substrate exists.
+- SD-001, SD-002, and SD-003 are complete substrate work.
+- SD-004 is now the next substrate issue and must consume the landed runner/parameter/scenario contracts rather than duplicate them.
+- SD-006 and SD-007 are the main safe parallel pair once SD-004 and the generic presentation seams exist.
 - SD-005 should establish the generic presentation shell and **adopt/refine the already-working SD-002 controls**, not replace their semantics or defer their functionality.
 - SD-007 should make the existing phase/tick control visually meaningful by exposing real phased-scheduler selections; it should not create a competing stepping path.
 - SD-008 requires both scheduler stories to expose stable metrics.
@@ -87,6 +85,7 @@ Every implementation must preserve:
 - baseline/optimized provenance on comparison metrics;
 - typed parameter mutation semantics (`live`, `next-step`, `reset-required`);
 - reproducible scenario reset/replay;
+- versioned, validated, canonical scenario serialization with locale-independent deterministic ordering;
 - honest labeling of simplified teaching behavior versus verified real CyberSand behavior;
 - **visual transformations may amplify real scheduler facts but may not invent scheduler decisions**;
 - keyboard-usable controls and non-color-only critical state distinctions;
@@ -108,7 +107,21 @@ SD-002 delivers a human-usable early vertical slice before the mature presentati
 
 The implemented slider is deliberately non-linear: half of its travel covers `1/32×` through `1×`, while the upper half reaches `16×`. The runner receives explicit playback-rate values and fixed-step physics remain unchanged.
 
-The default SD-002 scenario intentionally uses one phase per frame. This establishes the real phase-step contract without pretending phased sampling is already implemented; SD-007 later supplies meaningful per-phase selection through the same controls.
+The default scenario intentionally uses one phase per frame. SD-003 also provides a four-phase clock fixture, but it explicitly does **not** select sparse cell subsets. This establishes the real phase-step/scenario contracts without pretending phased sampling is already implemented; SD-007 later supplies meaningful per-phase selection through the same controls.
+
+## SD-003 configuration substrate
+
+SD-003 establishes three concrete parameter timings without pre-implementing later optimization features:
+
+- live sand-motion enable/disable;
+- next-step diagonal tie-break selection;
+- reset-required deterministic seed variation.
+
+Scenario schema version `1` separates simulation/world data, scheduler clock configuration, parameter values, ordered deterministic input/parameter events, and non-authoritative presentation defaults. Serialization is validated and canonical. Reset reconstructs runtime live/next-step state from the scenario baseline while retaining explicitly applied reset-required configuration, so scripted event histories reproduce from a stable starting state.
+
+Prepared fixtures include a localized disturbance for later sleep/wake work and a four-phase clock scene for later phased-sampling work.
+
+Windows convenience entry points are also available: `Setup.cmd`, `Run.cmd`, and `Verify.cmd`. They remain thin wrappers over the canonical npm workflow. A one-off Windows Server 2025 / Node 24 CI smoke during SD-003 verified setup and repository verification under `cmd.exe`, plus the `Run.cmd` canonical launch path. Repository text is normalized to LF except `.cmd`, which is forced to CRLF.
 
 ## Initial UX target
 
@@ -174,7 +187,7 @@ Mitigation: distinct state model, legend, tests, and redundant visual encoding.
 
 ### R5 — Parameter experimentation breaks replay
 
-Mitigation: all mutations are ordered deterministic events with declared application semantics and serialization.
+Mitigation: definitions declare mutation timing; pending mutations are deterministic state; canonical scenario events are ordered; reset clears runtime live/next-step mutations back to scenario baseline while retaining explicit reset-required configuration; reset/replay is directly test-covered.
 
 ### R6 — Comparison makes unsupported equivalence claims
 
@@ -200,8 +213,8 @@ For every issue: implement completely, test, reconcile docs, open a focused PR, 
 |---|---:|---|---|
 | SD-001 | [#1](https://github.com/techrote/sandimations/issues/1) | completed | Merged via PR #12; strict webapp/test/CI substrate |
 | SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | completed | PR #13; deterministic world/runner + early functional time controls |
-| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | ready | Parameters/scenarios; next substrate issue |
-| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | planned | Trace/metrics/adapters; reconcile with SD-003 interfaces |
+| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | completed | PR #14; typed parameters, canonical scenarios/events, Windows shortcuts |
+| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | ready | Next substrate issue: trace/metrics/adapters over landed SD-002/003 contracts |
 | SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | planned | UI/presentation shell; refine early controls |
 | SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | planned | Sleep/wake demo |
 | SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | planned | Phased sampling demo; primary visual explanation |
