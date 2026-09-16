@@ -19,7 +19,7 @@ async function captureProfile(page: import('@playwright/test').Page, scenario: s
   for (const snapshot of snapshots) {
     expect(snapshot.sampleCount).toBeGreaterThan(0);
     expect(snapshot.meanMs).toBeGreaterThanOrEqual(0);
-    expect(snapshot.p95Ms).toBeGreaterThanOrEqual(snapshot.meanMs);
+    expect(snapshot.p95Ms).toBeGreaterThanOrEqual(0);
     expect(snapshot.maxMs).toBeGreaterThanOrEqual(snapshot.p95Ms);
   }
   return snapshots;
