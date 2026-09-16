@@ -9,7 +9,7 @@ describe('SD-009 timeline projection', () => {
     runner.stepPhase();
     runner.stepPhase();
 
-    const entries = buildTimelinePhaseEntries(runner.getTraceSnapshot().records, 256);
+    const entries = buildTimelinePhaseEntries(runner.getTraceSnapshot().records, 16_384);
     expect(entries).toHaveLength(2);
     expect(entries[0]).toMatchObject({ frame: 0, phase: 0, tick: 0, phaseCount: 4 });
     expect(entries[1]).toMatchObject({ frame: 0, phase: 1, tick: 1, phaseCount: 4 });
