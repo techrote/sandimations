@@ -118,7 +118,9 @@ export function buildTimelinePhaseEntries(
 
 export function describeTimelineEntry(entry: TimelinePhaseEntry): string {
   const phase =
-    entry.phaseCount === null ? `phase ${entry.phase + 1}` : `phase ${entry.phase + 1}/${entry.phaseCount}`;
+    entry.phaseCount === null
+      ? `phase ${entry.phase + 1}`
+      : `phase ${entry.phase + 1}/${entry.phaseCount}`;
   const selection =
     entry.selectedCount === null || entry.activeCount === null
       ? ''

@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('SD-009 scenario experience', () => {
-  test('selects a fresh curated scenario without leaking previous evidence state', async ({ page }) => {
+  test('selects a fresh curated scenario without leaking previous evidence state', async ({
+    page,
+  }) => {
     await page.goto('/?v=1&scenario=phased-slow&tick=3&paused=1&speed=50&view=inspect&history=128');
     await expect(page.getByTestId('scenario-picker')).toHaveValue('phased-slow');
     await expect(page.getByTestId('tick-count')).toHaveText('3');
@@ -15,7 +17,9 @@ test.describe('SD-009 scenario experience', () => {
     await expect(page.getByTestId('timeline-list')).not.toContainText('tick 2');
   });
 
-  test('reopens a copied canonical URL at materially equivalent deterministic state', async ({ page }) => {
+  test('reopens a copied canonical URL at materially equivalent deterministic state', async ({
+    page,
+  }) => {
     await page.goto(
       '/?v=1&scenario=phased-slow&tick=5&paused=1&speed=30&view=presentation&history=64&p.simulation.sand.enabled=0',
     );
@@ -36,9 +40,13 @@ test.describe('SD-009 scenario experience', () => {
     await expect(page.getByTestId('state-hash')).toHaveText(initialHash ?? '');
   });
 
-  test('shows frame and scheduler phase from trace evidence without pretending to rewind', async ({ page }) => {
+  test('shows frame and scheduler phase from trace evidence without pretending to rewind', async ({
+    page,
+  }) => {
     await page.goto('/?v=1&scenario=phased-slow&tick=0&paused=1&speed=50&view=inspect&history=64');
-    await expect(page.getByTestId('timeline-detail')).toHaveValue('No trace-backed phase evidence yet.');
+    await expect(page.getByTestId('timeline-detail')).toHaveValue(
+      'No trace-backed phase evidence yet.',
+    );
 
     await page.getByTestId('step-phase').click();
     await expect(page.getByTestId('timeline-tick-0')).toContainText('frame 0 · phase 1/4 · tick 0');
@@ -50,7 +58,9 @@ test.describe('SD-009 scenario experience', () => {
     await expect(page.getByTestId('timeline-retention')).toContainText('this inspector read');
   });
 
-  test('presentation beats use the normal controls and scenario navigation remains keyboard viable', async ({ page }) => {
+  test('presentation beats use the normal controls and scenario navigation remains keyboard viable', async ({
+    page,
+  }) => {
     await page.goto('/?v=1&scenario=phased-slow&tick=0&paused=1&speed=50&view=inspect&history=128');
 
     await page.getByTestId('scenario-picker').focus();
@@ -65,11 +75,15 @@ test.describe('SD-009 scenario experience', () => {
     await expect(page.getByTestId('presentation-caption')).toHaveValue(/public step command/);
   });
 
-  test('rejects unsupported share versions without corrupting application state', async ({ page }) => {
+  test('rejects unsupported share versions without corrupting application state', async ({
+    page,
+  }) => {
     await page.goto('/?v=999&scenario=chunk-sleep-wake&tick=40&view=presentation');
 
     await expect(page.getByTestId('scenario-picker')).toHaveValue('phased-slow');
     await expect(page.getByTestId('tick-count')).toHaveText('0');
-    await expect(page.getByTestId('share-warning')).toContainText('Unsupported share-state version 999');
+    await expect(page.getByTestId('share-warning')).toContainText(
+      'Unsupported share-state version 999',
+    );
   });
 });

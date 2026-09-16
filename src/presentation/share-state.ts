@@ -1,10 +1,6 @@
 import type { ParameterDefinition, ParameterValue } from '../core/parameters/definitions';
 import type { ParameterRegistry } from '../core/parameters/registry';
-import {
-  MAX_SPEED_POSITION,
-  MIN_SPEED_POSITION,
-  NORMAL_SPEED_POSITION,
-} from './speed-control';
+import { MAX_SPEED_POSITION, MIN_SPEED_POSITION, NORMAL_SPEED_POSITION } from './speed-control';
 
 export const SHARE_STATE_VERSION = 1 as const;
 export const MAX_SHARE_REPLAY_TICKS = 512;
@@ -41,11 +37,7 @@ function defaultState(scenarioId: string): ShareStateV1 {
   });
 }
 
-function parseSafeInteger(
-  raw: string | null,
-  minimum: number,
-  maximum: number,
-): number | null {
+function parseSafeInteger(raw: string | null, minimum: number, maximum: number): number | null {
   if (raw === null || !/^-?\d+$/.test(raw)) return null;
   const value = Number(raw);
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) return null;
@@ -87,7 +79,9 @@ export function decodeShareState(
   const legacy = version === null;
 
   if (version !== null && version !== String(SHARE_STATE_VERSION)) {
-    warnings.push(`Unsupported share-state version ${version}; opened the default scenario instead.`);
+    warnings.push(
+      `Unsupported share-state version ${version}; opened the default scenario instead.`,
+    );
     return Object.freeze({
       state: defaultState(defaultScenarioId),
       warnings: Object.freeze(warnings),
@@ -121,14 +115,13 @@ export function decodeShareState(
 
   const pausedRaw = search.get('paused');
   const paused = pausedRaw === null ? false : parseBoolean(pausedRaw);
-  if (pausedRaw !== null && paused === null) warnings.push('Invalid paused flag; playback is enabled.');
+  if (pausedRaw !== null && paused === null)
+    warnings.push('Invalid paused flag; playback is enabled.');
 
   const speedRaw = search.get('speed');
   const speedPosition = parseSafeInteger(speedRaw, MIN_SPEED_POSITION, MAX_SPEED_POSITION);
   if (speedRaw !== null && speedPosition === null) {
-    warnings.push(
-      `Invalid speed position; expected ${MIN_SPEED_POSITION}-${MAX_SPEED_POSITION}.`,
-    );
+    warnings.push(`Invalid speed position; expected ${MIN_SPEED_POSITION}-${MAX_SPEED_POSITION}.`);
   }
 
   const viewRaw = search.get('view');

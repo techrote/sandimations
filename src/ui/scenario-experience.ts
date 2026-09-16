@@ -4,10 +4,7 @@ import type { ParameterValue } from '../core/parameters/definitions';
 import type { ParameterRegistry } from '../core/parameters/registry';
 import { SimulationRunner } from '../core/runner/runner';
 import { normalizeScenario, type CoreScenario } from '../core/scenario/scenario';
-import {
-  DEFAULT_PRESENTATION_SCRIPT,
-  executePresentationBeat,
-} from '../presentation/demo-script';
+import { DEFAULT_PRESENTATION_SCRIPT, executePresentationBeat } from '../presentation/demo-script';
 import { ComparisonController } from '../presentation/comparison-controller';
 import { PresentationEvidenceAdapterV1 } from '../presentation/evidence-adapter';
 import {
@@ -245,7 +242,14 @@ function mountSession(
   const toolbarActions = document.createElement('div');
   toolbarActions.className = 'scenario-toolbar-actions';
   toolbarActions.append(viewButton, demoButton, demoCaption);
-  controls.append(scenarioLabel, scenarioSelect, scenarioSummary, toolbarActions, shareRow, warningBox);
+  controls.append(
+    scenarioLabel,
+    scenarioSelect,
+    scenarioSummary,
+    toolbarActions,
+    shareRow,
+    warningBox,
+  );
 
   const appHost = document.createElement('div');
   appHost.className = 'scenario-app-host';
@@ -379,12 +383,7 @@ function mountSession(
 
     timelineRetention.textContent = `${windowSnapshot.retainedRecords} records retained by the core ring; this inspector read ${windowSnapshot.records.length}. ${windowSnapshot.droppedRecords} older records have been evicted.`;
 
-    const shareState = createCurrentShareState(
-      runtime,
-      state,
-      presentationMode,
-      historyLimit,
-    );
+    const shareState = createCurrentShareState(runtime, state, presentationMode, historyLimit);
     if (shareState === null) {
       shareInput.value = '';
       shareStatus.textContent = `Current tick exceeds the safe ${MAX_SHARE_REPLAY_TICKS}-tick direct-link replay bound.`;
@@ -409,7 +408,10 @@ function mountSession(
   });
 }
 
-export function mountScenarioExperience(root: HTMLElement, registry: ParameterRegistry): () => void {
+export function mountScenarioExperience(
+  root: HTMLElement,
+  registry: ParameterRegistry,
+): () => void {
   let activeCleanup = (): void => {};
 
   const openState = (state: ShareStateV1): void => {

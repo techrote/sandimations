@@ -22,7 +22,9 @@ describe('SD-009 scenario library', () => {
 
   it('builds canonical repository data deterministically', () => {
     for (const entry of listScenarioLibrary()) {
-      expect(serializeScenario(entry.createScenario())).toBe(serializeScenario(entry.createScenario()));
+      expect(serializeScenario(entry.createScenario())).toBe(
+        serializeScenario(entry.createScenario()),
+      );
     }
   });
 

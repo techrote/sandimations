@@ -27,7 +27,8 @@ const ENTRIES: readonly ScenarioLibraryEntry[] = Object.freeze([
   Object.freeze({
     id: 'chunk-sleep-wake',
     title: 'Localized wake propagation',
-    summary: 'Quiet chunks sleep; a scripted disturbance and material crossings propagate wake state.',
+    summary:
+      'Quiet chunks sleep; a scripted disturbance and material crossings propagate wake state.',
     mode: 'single',
     createScenario: createSleepWakeFixtureScenario,
   }),
@@ -48,7 +49,8 @@ const ENTRIES: readonly ScenarioLibraryEntry[] = Object.freeze([
   Object.freeze({
     id: 'compare-sleep-wake',
     title: 'Compare — chunk sleep / wake',
-    summary: 'Independent full-scan baseline and chunk scheduler with deterministic work/divergence evidence.',
+    summary:
+      'Independent full-scan baseline and chunk scheduler with deterministic work/divergence evidence.',
     mode: 'comparison',
     createScenario: createSleepWakeFixtureScenario,
   }),
