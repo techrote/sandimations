@@ -4,110 +4,73 @@ Verification must demonstrate both software correctness and explanatory honesty.
 
 ## Required automated checks
 
-The mature project should gate merges on, at minimum:
+Every release/implementation PR is expected to preserve the accumulated verification surface:
 
-- clean dependency install from lockfile;
-- TypeScript typecheck;
-- static/lint checks;
-- unit tests;
-- deterministic replay tests;
-- integration tests for runner/parameter/trace boundaries;
-- production build;
-- selected browser end-to-end smoke tests.
+- clean `npm ci` install from `package-lock.json`;
+- `npm run audit` (`npm audit --audit-level=high`);
+- `npm run format:check`;
+- `npm run lint` deterministic-core boundary/static check;
+- `npm run typecheck`;
+- `npm test`;
+- `npm run build`;
+- `npm run test:e2e`;
+- `npm run build:pages`;
+- `npm run test:e2e:pages` against the real `/sandimations/` repository base path.
 
-Issues may introduce these incrementally, but no issue may remove or silently weaken checks already present.
+`npm run verify` is the fast cross-platform formatting/boundary/type/unit/build bundle; browser and Pages smoke remain separate commands because they require Chromium.
+
+No issue may remove or silently weaken an existing check.
 
 ## Determinism tests
 
-Fixtures should prove that identical seed + scenario + ordered inputs + parameter mutations + runner commands produce identical:
+Identical seed + scenario + ordered inputs + parameter mutations + runner commands must produce identical canonical state/hash, trace sequence, and deterministic metrics. Tests deliberately vary presentation/backend reads to prove observation does not perturb future execution. No deterministic core module may use browser time, timers, animation frames, DOM APIs, or `Math.random()`.
 
-- canonical state hashes/snapshots;
-- trace event sequence;
-- deterministic metrics.
-
-Tests should explicitly vary render cadence or call presentation/backend evidence reads between core steps to demonstrate that observation does not change simulation results.
-
-No deterministic core module may call `Math.random()`.
+Performance/presentation changes must rerun the deterministic suite even when they appear UI-only.
 
 ## Trace and metrics tests
 
-Trace verification should cover:
+Verification covers protocol/schema versions, monotonic sequence, frame/phase/tick context, provenance, human-auditable golden traces, distinct examined/moved/skipped/blocked semantics, chunk lifecycle/wake causes, phased-selection evidence, reset/replay identity, and bounded trace retention. Metrics derived from trace records are reconciled with those records.
 
-- explicit protocol/schema versions;
-- monotonic deterministic event sequence;
-- frame/phase/tick context on every record;
-- provenance alignment across trace and metrics snapshots;
-- exact golden traces for small human-auditable fixtures;
-- distinct examined/moved/skipped/blocked event semantics;
-- chunk activated/slept/woken vocabulary, live scheduler transitions, structured wake causes, and current/cumulative chunk metrics;
-- reset/replay reproducing trace sequence and metrics exactly;
-- backend/presentation reads having no effect on future trace or metrics;
-- deterministic work counters remaining separate from wall-clock profiling.
+Deterministic work counters are never wall-clock timing.
 
-When a metrics snapshot is derived from trace records, tests should reconcile the counters against those records rather than validating only independent totals.
+## Time and comparison tests
 
-## Time-control tests
+Verify pause/play, phase stepping, frame stepping, N-frame stepping, slow/realtime/fast rate translation, reset, and live/next-step/reset-required parameter timing. Phase and logical frame are distinct.
 
-Verify the semantics of:
+Comparison tests require independent baseline/optimized runners fed equivalent canonical scenario/input streams, provenance-bound metrics, and an explicitly defined divergence metric. Physical identity is never inferred from screenshots or zero divergence at one instant.
 
-- pause;
-- one-phase stepping;
-- one-frame stepping;
-- N-frame stepping;
-- slow/realtime/fast playback command translation;
-- reset;
-- mutation application at `live`, `next-step`, and `reset-required` boundaries.
+## Browser and accessibility checks
 
-Tests should distinguish scheduler phases from logical frames.
+Playwright semantic tests are preferred over platform-fragile pixel equality. Current release coverage includes:
 
-## Visualization tests
+- keyboard-operable core controls, scenario selection, and timeline entries;
+- visible/semantic control labels and pressed states;
+- non-color legend cues for all critical scheduler states;
+- `prefers-reduced-motion` suppression of nonessential animation;
+- representative `360`, `390`, `768`, and `1440` pixel viewport checks;
+- single-world and comparison layouts without document-level blocking horizontal overflow;
+- scenario reset/replay, timeline evidence, sharing, presentation mode, and comparison behavior.
 
-A renderer need not be pixel-identical across all platforms. Prefer semantic/browser assertions for critical state:
+Stable screenshot tests may be added where they provide evidence not already covered by semantic assertions.
 
-- current frame/phase labels;
-- legend and overlay toggles;
-- sleeping vs active vs selected-state distinctions;
-- controls enabled/disabled appropriately;
-- scenario reset and deterministic replay;
-- accessible names and keyboard operation.
+## Resource-safety checks
 
-Use screenshot/visual regression tests selectively for stable explanatory layouts, not as a substitute for state assertions.
-
-SD-005 browser coverage additionally verifies preserved speed/phase/frame/N-frame/reset semantics, registry-driven live/next-step/reset-required controls, keyboard operation, no horizontal overflow at a representative narrow viewport, visible generic overlay controls, and reduced-motion suppression of nonessential overlay animation. Unit coverage verifies that app overlays and pending parameter states come from evidence/registry contracts and that the live presentation adapter prefers the bounded recent-evidence path when available.
-
-SD-006 verification must additionally prove deterministic active → pending-sleep → sleeping transitions, true absence of cell evaluation while every chunk is sleeping, bounded local wake behavior, cross-chunk wake causes, reset/replay identity for scheduler state/trace/metrics/hash, and browser-visible sleeping → newly-woken → returning-to-sleep state using the generic SD-005 overlays and chunk counters.
-
-## Comparison-mode tests
-
-Baseline and optimized runners must receive identical canonical scenario/input streams. Test that metrics identify their provenance and that divergence is defined/tested rather than inferred from screenshots.
-
-Do not assert that optimized and baseline physical states are identical unless the relevant algorithm contract actually guarantees it.
+Long-lived evidence is explicitly bounded: the core trace ring retains at most 16,384 records and the live presentation/timeline request bounded recent windows. Scenario validation additionally rejects dimensions above 512 cells per axis, total worlds above 65,536 cells, and event streams above 10,000 entries before expensive normalization. Oversized input fails visibly rather than being truncated.
 
 ## Performance evidence
 
-Optimization demonstrations teach *algorithmic work avoidance*. Deterministic counters (cells examined, chunks active, etc.) are primary evidence.
+`window.__sandimationsPerformance` exposes a bounded 120-sample browser-only diagnostic window for `world-canvas` and `playback-ui` timings. `read()` returns last/mean/p95/max timings and a presentation work-item count; `reset()` clears only this diagnostic history.
 
-Wall-clock browser benchmarks are secondary and must state environment/noise limitations. Do not use a single timing number as proof of a scheduling optimization.
+These values are deliberately nondeterministic wall-clock diagnostics. They must not enter runner state, state hashes, scheduler decisions, traces, deterministic metrics, share state, or claims about algorithmic work avoidance.
 
-## Accessibility checks
+`tests/e2e/performance.spec.ts` profiles representative phased-sampling and comparison scenarios and writes reproducible `[performance-profile]` records to the Playwright/CI log. Any renderer/UI optimization must cite before/after runs. If a proposed change fails to show an improvement, prefer reverting it over retaining speculative complexity.
 
-Critical scheduler states may not be distinguishable solely by hue. Verification should cover:
+## Static deployment checks
 
-- keyboard-accessible time controls and parameter inputs;
-- visible focus;
-- text alternatives/labels for controls and counters;
-- sufficient semantic distinction for overlays;
-- `prefers-reduced-motion` behavior for nonessential presentation animation;
-- responsive layout at representative narrow and desktop widths.
+`npm run build:pages` builds with Vite base `/sandimations/`. `playwright.pages.config.mjs` then serves that exact production output beneath `/sandimations/`, while `tests/e2e/deployment.spec.ts` asserts the scenario route, canvas, assets, and HTTP responses work from that path.
+
+`.github/workflows/pages.yml` repeats the production build and base-path smoke before uploading/deploying the Pages artifact. Deployment failure is a required visible failure; a local base-path smoke is not a substitute for verifying the public Pages deployment.
 
 ## Per-issue completion evidence
 
-Every implementation PR should record:
-
-1. exact commands run;
-2. results;
-3. added/changed deterministic fixtures;
-4. browser verification where applicable;
-5. any known limitations or deliberately deferred acceptance items.
-
-If a required verification cannot be executed, the PR must say why and the issue must remain open unless repository policy explicitly allows an alternative proof.
+Every implementation PR records exact commands/checks, results, deterministic fixture changes, browser/deployment evidence where applicable, measured performance evidence for optimization changes, and known limitations or deferred acceptance items. If required verification cannot be executed, the PR must say why and the issue remains open unless repository policy explicitly permits an equivalent proof.
