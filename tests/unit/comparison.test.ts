@@ -64,8 +64,12 @@ describe('SD-008 deterministic comparison', () => {
     const optimized = comparison.getOptimizedRunner().getSnapshot();
     expect(baseline.tick).toBe(1);
     expect(optimized.tick).toBe(1);
-    expect(comparison.getBaselineRunner().getParameterValue(CoreParameterId.sandEnabled)).toBe(false);
-    expect(comparison.getOptimizedRunner().getParameterValue(CoreParameterId.sandEnabled)).toBe(false);
+    expect(comparison.getBaselineRunner().getParameterValue(CoreParameterId.sandEnabled)).toBe(
+      false,
+    );
+    expect(comparison.getOptimizedRunner().getParameterValue(CoreParameterId.sandEnabled)).toBe(
+      false,
+    );
     expect(baseline.world).toEqual(optimized.world);
     expect(baseline.world.cells[2 * baseline.world.width + 2]).toBe(Material.Sand);
   });
@@ -82,7 +86,9 @@ describe('SD-008 deterministic comparison', () => {
     expect(leftSnapshot).toEqual(rightSnapshot);
     expect(leftSnapshot.baseline.provenance.strategyId).toBe('phase-clock-v1');
     expect(leftSnapshot.optimized.provenance.strategyId).toBe('phased-sampling-v1');
-    expect(leftSnapshot.baseline.provenance.scenarioId).toBe(leftSnapshot.optimized.provenance.scenarioId);
+    expect(leftSnapshot.baseline.provenance.scenarioId).toBe(
+      leftSnapshot.optimized.provenance.scenarioId,
+    );
     expect(leftSnapshot.baseline.metrics.phases.completed).toBe(4);
     expect(leftSnapshot.optimized.metrics.phases.completed).toBe(4);
     expect(leftSnapshot.workRatio.optimizedToBaseline).toBe(0.25);
@@ -95,7 +101,9 @@ describe('SD-008 deterministic comparison', () => {
     const snapshot = comparison.getSnapshot();
 
     expect(snapshot.optimized.metrics.chunks.sleeping).toBeGreaterThan(0);
-    expect(snapshot.optimized.metrics.cells.examined).toBeLessThan(snapshot.baseline.metrics.cells.examined);
+    expect(snapshot.optimized.metrics.cells.examined).toBeLessThan(
+      snapshot.baseline.metrics.cells.examined,
+    );
     expect(snapshot.workRatio.optimizedToBaseline).not.toBeNull();
     expect(snapshot.workRatio.optimizedToBaseline as number).toBeLessThan(1);
   });
@@ -104,12 +112,26 @@ describe('SD-008 deterministic comparison', () => {
     const baseline: WorldSnapshot = {
       width: 3,
       height: 2,
-      cells: [Material.Wall, Material.Empty, Material.Sand, Material.Wall, Material.Sand, Material.Wall],
+      cells: [
+        Material.Wall,
+        Material.Empty,
+        Material.Sand,
+        Material.Wall,
+        Material.Sand,
+        Material.Wall,
+      ],
     };
     const optimized: WorldSnapshot = {
       width: 3,
       height: 2,
-      cells: [Material.Wall, Material.Sand, Material.Empty, Material.Wall, Material.Sand, Material.Wall],
+      cells: [
+        Material.Wall,
+        Material.Sand,
+        Material.Empty,
+        Material.Wall,
+        Material.Sand,
+        Material.Wall,
+      ],
     };
 
     expect(measureMaterialStateDivergence(baseline, baseline)).toMatchObject({

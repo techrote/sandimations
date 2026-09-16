@@ -137,7 +137,8 @@ export function mountComparisonApp(
   });
   stepCount.addEventListener('input', () => {
     const count = Number(stepCount.value);
-    stepFrames.textContent = Number.isSafeInteger(count) && count > 0 ? `+${count} frames` : 'Step frames';
+    stepFrames.textContent =
+      Number.isSafeInteger(count) && count > 0 ? `+${count} frames` : 'Step frames';
   });
 
   const speedLabel = document.createElement('label');
@@ -201,7 +202,10 @@ export function mountComparisonApp(
   worlds.dataset.viewMode = 'split';
   worlds.setAttribute('aria-label', 'Compared worlds');
 
-  function worldCard(title: string, testId: string): {
+  function worldCard(
+    title: string,
+    testId: string,
+  ): {
     card: HTMLElement;
     canvas: HTMLCanvasElement;
     provenance: HTMLElement;
@@ -239,15 +243,47 @@ export function mountComparisonApp(
   const head = document.createElement('thead');
   head.innerHTML = '<tr><th>Metric</th><th>Baseline</th><th>Optimized</th></tr>';
   const body = document.createElement('tbody');
-  const examined = metricRow('Cells examined', 'compare-baseline-examined', 'compare-optimized-examined');
+  const examined = metricRow(
+    'Cells examined',
+    'compare-baseline-examined',
+    'compare-optimized-examined',
+  );
   const moved = metricRow('Cells moved', 'compare-baseline-moved', 'compare-optimized-moved');
-  const skipped = metricRow('Cells skipped', 'compare-baseline-skipped', 'compare-optimized-skipped');
-  const blocked = metricRow('Cells blocked', 'compare-baseline-blocked', 'compare-optimized-blocked');
-  const activeChunks = metricRow('Awake chunks', 'compare-baseline-active-chunks', 'compare-optimized-active-chunks');
-  const sleepingChunks = metricRow('Sleeping chunks', 'compare-baseline-sleeping-chunks', 'compare-optimized-sleeping-chunks');
-  const wokenChunks = metricRow('Chunks woken', 'compare-baseline-woken-chunks', 'compare-optimized-woken-chunks');
-  const phases = metricRow('Scheduler ticks completed', 'compare-baseline-phases', 'compare-optimized-phases');
-  const work = metricRow('Deterministic work units', 'compare-baseline-work', 'compare-optimized-work');
+  const skipped = metricRow(
+    'Cells skipped',
+    'compare-baseline-skipped',
+    'compare-optimized-skipped',
+  );
+  const blocked = metricRow(
+    'Cells blocked',
+    'compare-baseline-blocked',
+    'compare-optimized-blocked',
+  );
+  const activeChunks = metricRow(
+    'Awake chunks',
+    'compare-baseline-active-chunks',
+    'compare-optimized-active-chunks',
+  );
+  const sleepingChunks = metricRow(
+    'Sleeping chunks',
+    'compare-baseline-sleeping-chunks',
+    'compare-optimized-sleeping-chunks',
+  );
+  const wokenChunks = metricRow(
+    'Chunks woken',
+    'compare-baseline-woken-chunks',
+    'compare-optimized-woken-chunks',
+  );
+  const phases = metricRow(
+    'Scheduler ticks completed',
+    'compare-baseline-phases',
+    'compare-optimized-phases',
+  );
+  const work = metricRow(
+    'Deterministic work units',
+    'compare-baseline-work',
+    'compare-optimized-work',
+  );
   body.append(
     examined.row,
     moved.row,
@@ -274,7 +310,12 @@ export function mountComparisonApp(
   const summarySlots = summaries.querySelectorAll('div');
   summarySlots[0]?.append(document.createElement('br'), workRatio);
   summarySlots[1]?.append(document.createElement('br'), workReduction);
-  summarySlots[2]?.append(document.createElement('br'), divergence, document.createElement('br'), metricId);
+  summarySlots[2]?.append(
+    document.createElement('br'),
+    divergence,
+    document.createElement('br'),
+    metricId,
+  );
   summarySlots[3]?.append(document.createElement('br'), divergenceCells);
 
   const caveat = document.createElement('p');
@@ -358,12 +399,19 @@ export function mountComparisonApp(
       comparison.optimized.phase,
       comparison.optimized.phaseCount,
     );
-    renderWorld(baselineWorld.canvas, baseline.world, { enabledOverlays: OVERLAYS, showGrid: true });
-    renderWorld(optimizedWorld.canvas, optimized.world, { enabledOverlays: OVERLAYS, showGrid: true });
+    renderWorld(baselineWorld.canvas, baseline.world, {
+      enabledOverlays: OVERLAYS,
+      showGrid: true,
+    });
+    renderWorld(optimizedWorld.canvas, optimized.world, {
+      enabledOverlays: OVERLAYS,
+      showGrid: true,
+    });
   }
 
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)
+      return;
     if (event.key === ' ') {
       event.preventDefault();
       controller.togglePlay();

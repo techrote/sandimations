@@ -1,8 +1,5 @@
 import type { ComparisonSnapshotV1, DeterministicComparison } from '../core/comparison/comparison';
-import {
-  NORMAL_SPEED_POSITION,
-  speedPositionToRate,
-} from './speed-control';
+import { NORMAL_SPEED_POSITION, speedPositionToRate } from './speed-control';
 import { SimulationController, type SimulationViewModel } from './simulation-controller';
 
 export class ComparisonController extends SimulationController {

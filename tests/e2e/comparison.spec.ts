@@ -12,7 +12,9 @@ test('phased comparison steps and resets deterministically with provenance-backe
   page,
 }) => {
   await page.goto('/?scenario=compare-phased');
-  await expect(page.getByRole('heading', { level: 1, name: 'Sandimations comparison' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Sandimations comparison' }),
+  ).toBeVisible();
   await expect(page.getByTestId('comparison-baseline-provenance')).toContainText('phase-clock-v1');
   await expect(page.getByTestId('comparison-optimized-provenance')).toContainText(
     'phased-sampling-v1',
@@ -67,11 +69,17 @@ test('chunk sleep comparison shows real baseline-relative avoided work', async (
   await page.getByTestId('comparison-step-frames').click();
   await expect(page.getByTestId('comparison-clock')).toContainText('Comparison frame 8');
   await expect
-    .poll(async () => Number(await page.getByTestId('compare-optimized-sleeping-chunks').textContent()))
+    .poll(async () =>
+      Number(await page.getByTestId('compare-optimized-sleeping-chunks').textContent()),
+    )
     .toBeGreaterThan(0);
 
-  const baselineExamined = Number(await page.getByTestId('compare-baseline-examined').textContent());
-  const optimizedExamined = Number(await page.getByTestId('compare-optimized-examined').textContent());
+  const baselineExamined = Number(
+    await page.getByTestId('compare-baseline-examined').textContent(),
+  );
+  const optimizedExamined = Number(
+    await page.getByTestId('compare-optimized-examined').textContent(),
+  );
   expect(baselineExamined).toBeGreaterThan(optimizedExamined);
 
   const ratioText = await page.getByTestId('comparison-work-ratio').textContent();
