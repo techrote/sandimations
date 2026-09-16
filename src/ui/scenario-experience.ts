@@ -4,8 +4,12 @@ import type { ParameterValue } from '../core/parameters/definitions';
 import type { ParameterRegistry } from '../core/parameters/registry';
 import { SimulationRunner } from '../core/runner/runner';
 import { normalizeScenario, type CoreScenario } from '../core/scenario/scenario';
-import { DEFAULT_PRESENTATION_SCRIPT, executePresentationBeat } from '../presentation/demo-script';
 import { ComparisonController } from '../presentation/comparison-controller';
+import {
+  DEFAULT_PRESENTATION_SCRIPT,
+  executePresentationBeat,
+  type PresentationCommandTarget,
+} from '../presentation/demo-script';
 import { PresentationEvidenceAdapterV1 } from '../presentation/evidence-adapter';
 import {
   canonicalShareQuery,
@@ -16,7 +20,7 @@ import {
   TIMELINE_HISTORY_LIMITS,
   type ShareStateV1,
 } from '../presentation/share-state';
-import { type SimulationController } from '../presentation/simulation-controller';
+import { SimulationController } from '../presentation/simulation-controller';
 import { buildTimelinePhaseEntries, describeTimelineEntry } from '../presentation/timeline';
 import {
   DEFAULT_SCENARIO_LIBRARY_ID,
@@ -32,6 +36,7 @@ interface SessionRuntime {
   readonly evidenceRunner: SimulationRunner;
   readonly cleanupApp: () => void;
   readonly baseScenario: CoreScenario;
+  readonly comparison: boolean;
 }
 
 interface SessionMountResult {
@@ -82,27 +87,26 @@ function createRuntime(
       evidenceRunner: comparison.getOptimizedRunner(),
       cleanupApp,
       baseScenario,
+      comparison: true,
     });
   }
 
   const runner = new SimulationRunner(scenario, registry);
   runner.setPlaybackRate(scenario.presentation.defaultPlaybackRate);
-  const controller = new (awaitlessSimulationController())(runner);
+  const controller = new SimulationController(runner);
   if (state.speedPosition !== null) controller.setSpeedPosition(state.speedPosition);
   for (let tick = 0; tick < state.tick; tick += 1) controller.stepPhase();
   if (!state.paused) runner.play();
   const evidence = new PresentationEvidenceAdapterV1(new TeachingModelEvidenceBackendV1(runner));
   const cleanupApp = mountApp(appHost, controller, evidence, registry);
-  return Object.freeze({ controller, evidenceRunner: runner, cleanupApp, baseScenario });
+  return Object.freeze({
+    controller,
+    evidenceRunner: runner,
+    cleanupApp,
+    baseScenario,
+    comparison: false,
+  });
 }
-
-// Kept as a function so the session runtime has one construction path for both controller kinds.
-function awaitlessSimulationController(): typeof import('../presentation/simulation-controller').SimulationController {
-  // This indirection is erased by TypeScript/Vite; it does not load code asynchronously.
-  return requireSimulationController;
-}
-
-import { SimulationController as requireSimulationController } from '../presentation/simulation-controller';
 
 function currentUrlForState(state: ShareStateV1): string {
   const url = new URL(window.location.href);
@@ -167,6 +171,47 @@ function createButton(label: string, testId: string): HTMLButtonElement {
   return button;
 }
 
+function requiredControl<T extends HTMLElement>(host: HTMLElement, testId: string): T {
+  const control = host.querySelector<T>(`[data-testid="${testId}"]`);
+  if (control === null) {
+    throw new Error(`Mounted scenario control ${testId} was not found.`);
+  }
+  return control;
+}
+
+function createPresentationCommandTarget(
+  appHost: HTMLElement,
+  runtime: SessionRuntime,
+): PresentationCommandTarget {
+  const prefix = runtime.comparison ? 'comparison-' : '';
+
+  const click = (testId: string): void => {
+    requiredControl<HTMLButtonElement>(appHost, testId).click();
+  };
+
+  return Object.freeze({
+    pause: () => {
+      if (runtime.controller.getViewModel().playing) click(`${prefix}play-pause`);
+    },
+    stepPhase: () => click(`${prefix}step-phase`),
+    stepFrame: () => click(`${prefix}step-frame`),
+    stepFrames: (count: number) => {
+      const countId = runtime.comparison ? 'comparison-step-count' : 'step-count';
+      const buttonId = runtime.comparison ? 'comparison-step-frames' : 'step-frames';
+      const input = requiredControl<HTMLInputElement>(appHost, countId);
+      input.value = String(count);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      click(buttonId);
+    },
+    setSpeedPosition: (position: number) => {
+      const sliderId = runtime.comparison ? 'comparison-speed-slider' : 'speed-slider';
+      const input = requiredControl<HTMLInputElement>(appHost, sliderId);
+      input.value = String(position);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+  });
+}
+
 function mountSession(
   root: HTMLElement,
   state: ShareStateV1,
@@ -214,7 +259,7 @@ function mountSession(
   const demoCaption = document.createElement('output');
   demoCaption.className = 'demo-caption';
   demoCaption.dataset.testid = 'presentation-caption';
-  demoCaption.value = 'Presentation script is idle. It can only issue public controller commands.';
+  demoCaption.value = 'Presentation script is idle. It can only issue normal UI commands.';
 
   const shareRow = document.createElement('div');
   shareRow.className = 'share-row';
@@ -295,6 +340,7 @@ function mountSession(
   shell.append(controls, appHost, timeline);
 
   const runtime = createRuntime(appHost, state, registry);
+  const presentationCommands = createPresentationCommandTarget(appHost, runtime);
 
   const setPresentationMode = (enabled: boolean): void => {
     presentationMode = enabled;
@@ -309,7 +355,7 @@ function mountSession(
         version: SHARE_STATE_VERSION,
         scenarioId: scenarioSelect.value,
         tick: 0,
-        paused: false,
+        paused: true,
         speedPosition: null,
         presentationMode: false,
         historyLimit,
@@ -322,7 +368,7 @@ function mountSession(
   demoButton.addEventListener('click', () => {
     const beat = DEFAULT_PRESENTATION_SCRIPT[scriptIndex % DEFAULT_PRESENTATION_SCRIPT.length];
     if (beat === undefined) return;
-    executePresentationBeat(runtime.controller, setPresentationMode, beat);
+    executePresentationBeat(presentationCommands, setPresentationMode, beat);
     demoCaption.value = beat.caption;
     scriptIndex += 1;
     renderTimeline();
