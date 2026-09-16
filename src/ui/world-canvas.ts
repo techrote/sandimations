@@ -138,6 +138,24 @@ function drawSamplingCoverage(
   context.restore();
 }
 
+function drawGrid(
+  context: CanvasRenderingContext2D,
+  widthInCells: number,
+  heightInCells: number,
+): void {
+  context.save();
+  context.strokeStyle = 'rgba(233, 236, 225, 0.09)';
+  context.lineWidth = 1;
+  context.beginPath();
+  for (let y = 0; y < heightInCells; y += 1) {
+    for (let x = 0; x < widthInCells; x += 1) {
+      context.rect(x * CELL_SIZE + 0.5, y * CELL_SIZE + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
+    }
+  }
+  context.stroke();
+  context.restore();
+}
+
 export function renderWorld(
   canvas: HTMLCanvasElement,
   view: WorldPresentationViewModel,
@@ -166,13 +184,11 @@ export function renderWorld(
         context.fillStyle = cell === 'sand' ? '#d4ad62' : '#72776c';
         context.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
-
-      if (options.showGrid) {
-        context.strokeStyle = 'rgba(233, 236, 225, 0.09)';
-        context.lineWidth = 1;
-        context.strokeRect(x * CELL_SIZE + 0.5, y * CELL_SIZE + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
-      }
     }
+  }
+
+  if (options.showGrid) {
+    drawGrid(context, view.width, view.height);
   }
 
   if (view.sampling !== null) {
