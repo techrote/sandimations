@@ -32,13 +32,13 @@ SD-001 established the toolchain, strict TypeScript structure, deterministic-cor
 
 SD-002 established the seeded teaching model, explicit runner/clock, phase and frame stepping, deterministic hashes/reset/replay, and **working browser speed slider and stepping controls**. SD-003 added the typed parameter registry, deterministic mutation timing, versioned/canonical scenario serialization, scripted event replay, and fixture scenarios. SD-004 completed the substrate with versioned structured traces, deterministic trace-derived metrics, provenance, bounded evidence retention, and replaceable backend/presentation evidence contracts.
 
-### M2 — First explanatory app — in progress
+### M2 — First explanatory app — complete
 
-SD-005 completed the generic evidence-driven application shell. SD-006 adds the first real optimization demo: deterministic chunk sleep/wake state, actual avoided cell evaluation while regions sleep, local/cross-chunk wake causes, registered scheduler parameters, chunk metrics, and trace-backed visualization. SD-007 is now the next primary target: the signature phased-sampling scheduler and phase-by-phase visual explanation.
+SD-005 completed the generic evidence-driven application shell. SD-006 added the first real optimization demo: deterministic chunk sleep/wake state, actual avoided cell evaluation while regions sleep, local/cross-chunk wake causes, registered scheduler parameters, chunk metrics, and trace-backed visualization. SD-007 completed the signature phased-sampling scheduler with real sparse per-phase evaluation, trace-backed selection/coverage evidence, registered phase controls, and phase-by-phase visual explanation.
 
-### M3 — Comparative and presentation tooling
+### M3 — Comparative and presentation tooling — in progress
 
-Baseline-vs-optimized mode, divergence/work metrics, timeline/phase inspector, shareable scenario state, presentation mode, accessibility hardening, and deployable static build.
+SD-008 establishes deterministic baseline-vs-optimized orchestration, provenance-bound work/divergence metrics, and split/overlay comparison views. SD-009 follows with timeline, shareable state, and presentation tooling; SD-010 then hardens accessibility, browser behavior, performance, and deployment.
 
 ### M4 — Fidelity bridge
 
@@ -56,8 +56,8 @@ Stable work IDs and their GitHub issues form the execution graph.
 | SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | Trace protocol, metrics, backend/presentation adapter contracts | SD-001; consumes SD-002/003 | complete |
 | SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | UI shell, Canvas renderer, legend, inspectors, **refinement of SD-002 time controls** | SD-002, SD-003, SD-004 | complete |
 | SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | Chunk sleep/wake scheduler teaching model + demo | SD-002, SD-004; integrates with SD-003/005 | complete |
-| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | Phased-sampling teaching model + **primary visual/phase-step explanation** | SD-002, SD-004; integrates with SD-003/005 | next |
-| SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | Baseline-vs-optimized comparison and divergence/work instrumentation | SD-006, SD-007 | after both demos expose stable metrics |
+| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | Phased-sampling teaching model + **primary visual/phase-step explanation** | SD-002, SD-004; integrates with SD-003/005 | complete |
+| SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | Baseline-vs-optimized comparison and divergence/work instrumentation | SD-006, SD-007 | complete |
 | SD-009 | [#9](https://github.com/techrote/sandimations/issues/9) | Scenario presets, timeline, shareable URL state, presentation mode | SD-003, SD-005, SD-006, SD-007; comparison scenarios may use SD-008 | after stable scenario/UI contracts |
 | SD-010 | [#10](https://github.com/techrote/sandimations/issues/10) | Accessibility, performance, browser hardening, static deployment | SD-005 through SD-009 | final release hardening |
 | SD-011 | [#11](https://github.com/techrote/sandimations/issues/11) | External trace / future C++-WASM fidelity bridge proof | SD-004, SD-008 | may follow first public release |
@@ -67,11 +67,11 @@ Stable work IDs and their GitHub issues form the execution graph.
 - SD-001 through SD-005 are complete substrate/presentation-foundation work.
 - SD-005's generic app/view-model contract is now the presentation path: later scheduler work must supply structured evidence rather than add algorithm logic to Canvas/DOM code.
 - SD-006 is complete and demonstrates the pattern later schedulers must follow: scheduler-owned state, real work avoidance, SD-004 evidence, and generic SD-005 presentation.
-- SD-007 is the next primary issue and should extend the common evidence/overlay vocabulary instead of introducing a competing state or stepping path.
+- SD-007 is complete; phased sampling uses the common evidence/overlay and stepping contracts rather than a competing state or stepping path.
 - SD-005 must **adopt/refine the already-working SD-002 controls**, not replace their simulation semantics or defer their functionality.
 - SD-006 emits chunk activate/sleep/wake facts through the SD-004 event vocabulary; later work must preserve this common evidence channel.
-- SD-007 must make the existing phase/tick control visually meaningful by exposing real per-phase scheduler selections through the SD-004 evidence path; it must not create a competing stepping path or visual-only fake sampling mask.
-- SD-008 requires both scheduler stories to expose stable metrics/provenance through the common evidence contract.
+- SD-007 exposes real per-phase scheduler selections through the SD-004 evidence path; comparison and presentation work must consume those facts rather than synthesize sampling masks.
+- SD-008 compares independent full-scan-reference and optimized runners through the stable SD-004/006/007 evidence contracts. It synchronizes deterministic comparison ticks without sharing mutable simulation state and keeps deterministic work counters distinct from wall-clock timing.
 - SD-009 must not become a second state-management system; URL/preset state serializes canonical scenario/parameter/view models. Its timeline must respect explicit bounded trace retention rather than assuming an infinite live event log.
 - SD-010 is hardening, not a feature bucket; material new features discovered there should become explicit follow-ups.
 
@@ -186,7 +186,17 @@ Sleeping chunks are excluded from cell evaluation entirely, so reduced `cells.ex
 
 The live scenario `sd-006-chunk-sleep-wake` settles chunks, applies a scripted disturbance at tick 18 / cell `(24,3)`, exposes awake/sleeping/woken counters, then demonstrates regions returning toward sleep. Canvas chunk boundaries and cell overlays come from backend/presentation state; the renderer does not decide lifecycle state.
 
-Chunk-scoped evaluation changes update ordering relative to the baseline global scan, so physical identity is **not** claimed. SD-008 will measure divergence explicitly. See `docs/CHUNK_SLEEP_WAKE.md` for the full teaching-model contract and fidelity caveat.
+Chunk-scoped evaluation changes update ordering relative to the baseline global scan, so physical identity is **not** claimed. SD-008 measures that divergence explicitly rather than asserting physical identity. See `docs/CHUNK_SLEEP_WAKE.md` for the full teaching-model contract and fidelity caveat.
+
+## SD-007 phased sampling scheduler
+
+SD-007 introduces strategy `phased-sampling-v1` as a real sparse-evaluation teaching scheduler. Cells are assigned deterministically to phases, only the current phase is evaluated on each scheduler tick, and selection/coverage evidence is emitted through the SD-004 trace path. The presentation therefore shows real scheduler decisions rather than a visual-only sampling mask. The final SD-007 repair also made `evaluated-now` overlays exclusively trace-backed when material evaluation is disabled.
+
+## SD-008 deterministic comparison
+
+SD-008 runs independent baseline and optimized `SimulationRunner` instances from equivalent canonical non-scheduler scenario data. One `phase-clock-v1` full scan is executed for every optimized comparison tick, preserving ordered tick-based inputs/events while providing an auditable work reference for chunk sleep/wake and phased sampling. No model, PRNG, parameter-store, scheduler, trace, or metrics state is shared between sides.
+
+Comparison metrics retain backend/strategy/scenario provenance. Deterministic work ratios use the existing SD-004 work-unit definition and are explicitly not wall-clock speed measurements. Physical difference is measured by the defined `cell-material-hamming-v1` metric rather than inferred from rendered pixels. Split and overlay views reuse SD-005 presentation/view-model and Canvas contracts. See `docs/COMPARISON.md` for clock semantics, formulas, limitations, scenarios, and verification requirements.
 
 ## Initial UX target
 
@@ -256,7 +266,7 @@ Mitigation: definitions declare mutation timing; pending mutations are determini
 
 ### R6 — Comparison makes unsupported equivalence claims
 
-Mitigation: define each divergence/work metric, preserve provenance, and avoid asserting identical physical output unless guaranteed. SD-004 metrics explicitly distinguish deterministic work evidence from wall-clock speed.
+Mitigation: SD-008 defines cell-material Hamming divergence and deterministic work ratios in code and documentation, preserves both sides' provenance, and avoids asserting physical identity. SD-004 metrics explicitly distinguish deterministic work evidence from wall-clock speed.
 
 ### R7 — Feature creep into a full sand engine
 
@@ -290,8 +300,8 @@ For every issue: implement completely, test, reconcile docs, open a focused PR, 
 | SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | completed | PR #15; versioned traces/metrics/provenance + bounded evidence backend seam |
 | SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | completed | PR #16; evidence-driven responsive shell, registry controls, overlays/inspectors, refined time controls |
 | SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | completed | PR #17; real chunk dormancy/wake teaching scheduler, parameters, trace causes, metrics and visualization |
-| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | ready / next | Phased sampling scheduler/demo; primary visual explanation over landed SD-004/005/006 contracts |
-| SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | planned | Comparison mode |
+| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | completed | PR #18 plus #19 visual-truthfulness repair; real phased selection/evaluation and phase explanation |
+| SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | completed | PR #20; independent full-scan-reference comparisons, provenance-bound work/divergence metrics, split/overlay UI |
 | SD-009 | [#9](https://github.com/techrote/sandimations/issues/9) | planned | Presets/timeline/share |
 | SD-010 | [#10](https://github.com/techrote/sandimations/issues/10) | planned | Hardening/deploy |
 | SD-011 | [#11](https://github.com/techrote/sandimations/issues/11) | planned | Fidelity bridge |
