@@ -6,16 +6,12 @@ async function captureProfile(page: import('@playwright/test').Page, scenario: s
 
   await expect
     .poll(async () => {
-      const snapshots = await page.evaluate(
-        () => window.__sandimationsPerformance?.read() ?? [],
-      );
+      const snapshots = await page.evaluate(() => window.__sandimationsPerformance?.read() ?? []);
       return snapshots.find((entry) => entry.category === 'playback-ui')?.sampleCount ?? 0;
     })
     .toBeGreaterThanOrEqual(8);
 
-  const snapshots = await page.evaluate(
-    () => window.__sandimationsPerformance?.read() ?? [],
-  );
+  const snapshots = await page.evaluate(() => window.__sandimationsPerformance?.read() ?? []);
   const note = await page.evaluate(() => window.__sandimationsPerformance?.note ?? '');
   console.log(`[performance-profile] ${scenario} ${JSON.stringify(snapshots)}`);
 
