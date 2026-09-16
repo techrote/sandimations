@@ -222,7 +222,7 @@ export function mountComparisonApp(
     titleElement.textContent = title;
     const provenance = document.createElement('p');
     provenance.className = 'comparison-provenance';
-    provenance.dataset.testid = `${testId}-provenance`;
+    provenance.dataset.testid = `${testId.replace(/-canvas$/, '')}-provenance`;
     const frame = document.createElement('div');
     frame.className = 'comparison-canvas-frame';
     const canvas = document.createElement('canvas');

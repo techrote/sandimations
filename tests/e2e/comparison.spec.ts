@@ -19,6 +19,10 @@ test('phased comparison steps and resets deterministically with provenance-backe
   await expect(page.getByTestId('comparison-optimized-provenance')).toContainText(
     'phased-sampling-v1',
   );
+  await expect(page.getByTestId('comparison-metrics-provenance')).toContainText('phase-clock-v1');
+  await expect(page.getByTestId('comparison-metrics-provenance')).toContainText(
+    'phased-sampling-v1',
+  );
   await expect(page.getByTestId('comparison-caveat')).toContainText(
     'deterministic operation counts only',
   );
@@ -30,6 +34,10 @@ test('phased comparison steps and resets deterministically with provenance-backe
   await page.getByTestId('comparison-step-frame').click();
   await expect(page.getByTestId('comparison-clock')).toContainText('Comparison frame 1');
   await expect(page.getByTestId('comparison-clock')).toContainText('tick 4');
+  await expect(page.getByTestId('compare-baseline-phase-count')).toHaveText('1');
+  await expect(page.getByTestId('compare-optimized-phase-count')).toHaveText('4');
+  await expect(page.getByTestId('compare-baseline-native-frames')).toHaveText('4');
+  await expect(page.getByTestId('compare-optimized-native-frames')).toHaveText('1');
   await expect(page.getByTestId('compare-baseline-phases')).toHaveText('4');
   await expect(page.getByTestId('compare-optimized-phases')).toHaveText('4');
   await expect(page.getByTestId('comparison-work-ratio')).toHaveText('25.0%');
@@ -62,6 +70,10 @@ test('chunk sleep comparison shows real baseline-relative avoided work', async (
 
   await expect(page.getByTestId('comparison-baseline-provenance')).toContainText('phase-clock-v1');
   await expect(page.getByTestId('comparison-optimized-provenance')).toContainText(
+    'chunk-sleep-wake-v1',
+  );
+  await expect(page.getByTestId('comparison-metrics-provenance')).toContainText('phase-clock-v1');
+  await expect(page.getByTestId('comparison-metrics-provenance')).toContainText(
     'chunk-sleep-wake-v1',
   );
 
