@@ -18,8 +18,12 @@ test.describe('SD-009 scenario experience', () => {
     await expect(page.getByTestId('timeline-list')).not.toContainText('tick 2');
   });
 
-  test('replaces single and comparison runtimes without stale controls or clocks', async ({ page }) => {
-    await page.goto('/?v=1&scenario=falling-sand&tick=2&paused=1&speed=50&view=inspect&history=128');
+  test('replaces single and comparison runtimes without stale controls or clocks', async ({
+    page,
+  }) => {
+    await page.goto(
+      '/?v=1&scenario=falling-sand&tick=2&paused=1&speed=50&view=inspect&history=128',
+    );
     await expect(page.getByTestId('tick-count')).toHaveText('2');
 
     await page.getByTestId('scenario-picker').selectOption('compare-phased');

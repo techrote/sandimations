@@ -41,7 +41,9 @@ describe('SD-009 scenario library', () => {
   });
 
   it('replays comparison scenarios to identical paired state and evidence', () => {
-    for (const entry of listScenarioLibrary().filter((candidate) => candidate.mode === 'comparison')) {
+    for (const entry of listScenarioLibrary().filter(
+      (candidate) => candidate.mode === 'comparison',
+    )) {
       const first = new DeterministicComparison(entry.createScenario());
       const second = new DeterministicComparison(entry.createScenario());
       first.stepFrames(8);
