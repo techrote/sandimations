@@ -34,6 +34,14 @@ export interface PhaseStartedEventV1 {
   readonly phaseCount: number;
 }
 
+export interface PhaseSelectionEventV1 {
+  readonly type: 'phase-selection';
+  readonly pattern: string;
+  readonly phaseCount: number;
+  readonly selectedCount: number;
+  readonly activeCount: number;
+}
+
 export interface PhaseCompletedEventV1 {
   readonly type: 'phase-completed';
   readonly phaseCount: number;
@@ -89,6 +97,7 @@ export interface ChunkWokenEventV1 {
 
 export type TraceEventV1 =
   | PhaseStartedEventV1
+  | PhaseSelectionEventV1
   | PhaseCompletedEventV1
   | CellExaminedEventV1
   | CellMovedEventV1

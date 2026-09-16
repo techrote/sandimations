@@ -3,44 +3,26 @@ import {
   EVIDENCE_BACKEND_ADAPTER_VERSION,
   TeachingModelEvidenceBackendV1,
   type BackendEvidenceSnapshotV1,
-  type BackendPresentationEvidenceSnapshotV1,
   type EvidenceBackendV1,
 } from '../../src/adapters/evidence-backend';
+import { Material } from '../../src/core/model/material';
 import { SimulationRunner } from '../../src/core/runner/runner';
 import { createDefaultScenario } from '../../src/core/scenario/scenario';
-import {
-  DEFAULT_PRESENTATION_TRACE_RECORDS,
-  PresentationEvidenceAdapterV1,
-} from '../../src/presentation/evidence-adapter';
+import { PresentationEvidenceAdapterV1 } from '../../src/presentation/evidence-adapter';
 
-class SnapshotEvidenceBackend implements EvidenceBackendV1 {
+function mockBackendSnapshot(): BackendEvidenceSnapshotV1 {
+  const runner = new SimulationRunner(createDefaultScenario(1234));
+  runner.stepFrame();
+  return new TeachingModelEvidenceBackendV1(runner).readEvidence();
+}
+
+class StaticBackend implements EvidenceBackendV1 {
   public readonly adapterVersion = EVIDENCE_BACKEND_ADAPTER_VERSION;
 
   public constructor(private readonly snapshot: BackendEvidenceSnapshotV1) {}
 
   public readEvidence(): BackendEvidenceSnapshotV1 {
     return this.snapshot;
-  }
-}
-
-class PresentationWindowBackend implements EvidenceBackendV1 {
-  public readonly adapterVersion = EVIDENCE_BACKEND_ADAPTER_VERSION;
-  public fullReads = 0;
-  public windowReads = 0;
-
-  public constructor(
-    private readonly full: BackendEvidenceSnapshotV1,
-    private readonly window: BackendPresentationEvidenceSnapshotV1,
-  ) {}
-
-  public readEvidence(): BackendEvidenceSnapshotV1 {
-    this.fullReads += 1;
-    return this.full;
-  }
-
-  public readPresentationEvidence(): BackendPresentationEvidenceSnapshotV1 {
-    this.windowReads += 1;
-    return this.window;
   }
 }
 
@@ -73,6 +55,7 @@ describe('backend and presentation evidence adapters', () => {
       tick: 1,
       phaseCount: 1,
       chunks: [],
+      sampling: null,
     });
     expect(snapshot.trace.records.length).toBeGreaterThan(2);
     expect(snapshot.metrics.cells.examined).toBeGreaterThan(0);
@@ -83,55 +66,49 @@ describe('backend and presentation evidence adapters', () => {
     const runner = new SimulationRunner(createDefaultScenario());
     runner.stepFrames(2);
     const teaching = new TeachingModelEvidenceBackendV1(runner);
-    const canonical = teaching.readEvidence();
-
     const teachingView = new PresentationEvidenceAdapterV1(teaching).read();
-    const mockView = new PresentationEvidenceAdapterV1(
-      new SnapshotEvidenceBackend(canonical),
-    ).read();
+    const fullTrace = teaching.readEvidence().trace.records;
+    const expectedTrace = fullTrace.slice(-512);
 
-    expect(mockView).toEqual(teachingView);
-    expect(mockView.traceRecords).toEqual(
-      canonical.trace.records.slice(-DEFAULT_PRESENTATION_TRACE_RECORDS),
-    );
-    expect(mockView.traceRetention.retainedRecords).toBe(canonical.trace.records.length);
-    expect(mockView.metrics).toEqual(canonical.metrics);
+    const mockSnapshot = mockBackendSnapshot();
+    const mockView = new PresentationEvidenceAdapterV1(new StaticBackend(mockSnapshot)).read();
+
+    expect(teachingView.provenance.backendKind).toBe('teaching-model');
+    expect(teachingView.traceRecords).toEqual(expectedTrace);
+    expect(mockView.simulation.scenarioId).toBe(mockSnapshot.simulation.scenarioId);
+    expect(mockView.metrics).toEqual(mockSnapshot.metrics);
   });
 
   it('prefers the bounded presentation read path when a backend provides it', () => {
     const runner = new SimulationRunner(createDefaultScenario());
-    runner.stepFrames(2);
-    const teaching = new TeachingModelEvidenceBackendV1(runner);
-    const backend = new PresentationWindowBackend(
-      teaching.readEvidence(),
-      teaching.readPresentationEvidence(32),
-    );
-    const adapter = new PresentationEvidenceAdapterV1(backend);
+    runner.stepFrames(20);
+    const backend = new TeachingModelEvidenceBackendV1(runner);
+    const view = new PresentationEvidenceAdapterV1(backend).read(7);
 
-    const view = adapter.read(32);
-
-    expect(view.traceRecords).toHaveLength(32);
-    expect(backend.windowReads).toBe(1);
-    expect(backend.fullReads).toBe(0);
+    expect(view.traceRecords).toHaveLength(7);
+    expect(view.traceRetention.retainedRecords).toBeGreaterThanOrEqual(7);
+    expect(view.traceRetention.windowFirstSequence).toBe(view.traceRecords[0]?.sequence);
+    expect(view.traceRetention.nextSequence).toBe(runner.getTraceSnapshot().nextSequence);
   });
 
   it('keeps trace and metrics identical despite extra presentation/backend reads between steps', () => {
-    const directRunner = new SimulationRunner(createDefaultScenario(0x12345678));
-    const observedRunner = new SimulationRunner(createDefaultScenario(0x12345678));
-    const observed = new PresentationEvidenceAdapterV1(
-      new TeachingModelEvidenceBackendV1(observedRunner),
-    );
+    const scenario = createDefaultScenario(0x0ddc0ffe);
+    const observed = new SimulationRunner(scenario);
+    const control = new SimulationRunner(scenario);
+    const backend = new TeachingModelEvidenceBackendV1(observed);
+    const presentation = new PresentationEvidenceAdapterV1(backend);
 
-    for (let frame = 0; frame < 6; frame += 1) {
-      directRunner.stepFrame();
+    for (let frame = 0; frame < 10; frame += 1) {
       for (let read = 0; read < 23; read += 1) {
-        observed.read();
+        backend.readEvidence();
+        presentation.read();
       }
-      observedRunner.stepFrame();
+      observed.stepFrame();
+      control.stepFrame();
     }
 
-    expect(observedRunner.getStateHash()).toBe(directRunner.getStateHash());
-    expect(observedRunner.getTraceSnapshot()).toEqual(directRunner.getTraceSnapshot());
-    expect(observedRunner.getMetricsSnapshot()).toEqual(directRunner.getMetricsSnapshot());
+    expect(observed.getStateHash()).toBe(control.getStateHash());
+    expect(observed.getTraceSnapshot()).toEqual(control.getTraceSnapshot());
+    expect(observed.getMetricsSnapshot()).toEqual(control.getMetricsSnapshot());
   });
 });

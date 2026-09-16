@@ -14,6 +14,8 @@ describe('ParameterRegistry', () => {
       CoreParameterId.chunkSize,
       CoreParameterId.chunkSleepDelay,
       CoreParameterId.chunkWakeRadius,
+      CoreParameterId.phasedPattern,
+      CoreParameterId.phasedPhaseCount,
       CoreParameterId.sandEnabled,
       CoreParameterId.sandTieBreak,
       CoreParameterId.seedVariant,
@@ -51,6 +53,16 @@ describe('ParameterRegistry', () => {
       defaultValue: 1,
       mutation: 'next-step',
     });
+    expect(registry.get(CoreParameterId.phasedPhaseCount)).toMatchObject({
+      kind: 'integer',
+      defaultValue: 4,
+      mutation: 'reset-required',
+    });
+    expect(registry.get(CoreParameterId.phasedPattern)).toMatchObject({
+      kind: 'enum',
+      defaultValue: 'diagonal-lattice',
+      mutation: 'reset-required',
+    });
   });
 
   it('rejects invalid values predictably', () => {
@@ -69,6 +81,12 @@ describe('ParameterRegistry', () => {
     );
     expect(() => registry.validate(CoreParameterId.chunkSize, 3)).toThrow(ParameterValidationError);
     expect(() => registry.validate(CoreParameterId.chunkWakeRadius, 3)).toThrow(
+      ParameterValidationError,
+    );
+    expect(() => registry.validate(CoreParameterId.phasedPhaseCount, 1)).toThrow(
+      ParameterValidationError,
+    );
+    expect(() => registry.validate(CoreParameterId.phasedPattern, 'random')).toThrow(
       ParameterValidationError,
     );
   });

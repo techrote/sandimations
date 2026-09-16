@@ -3,7 +3,10 @@ import { TeachingModelEvidenceBackendV1 } from '../../src/adapters/evidence-back
 import { CoreParameterId } from '../../src/core/parameters/definitions';
 import { createCoreParameterRegistry } from '../../src/core/parameters/registry';
 import { SimulationRunner } from '../../src/core/runner/runner';
-import { createDefaultScenario } from '../../src/core/scenario/scenario';
+import {
+  createDefaultScenario,
+  createPhasedSamplingFixtureScenario,
+} from '../../src/core/scenario/scenario';
 import { buildAppPresentationViewModel } from '../../src/presentation/app-view-model';
 import { PresentationEvidenceAdapterV1 } from '../../src/presentation/evidence-adapter';
 import { SimulationController } from '../../src/presentation/simulation-controller';
@@ -36,6 +39,33 @@ describe('app presentation view model', () => {
       'newly-woken',
       'blocked-rejected',
     ]);
+  });
+
+  it('maps the real phased selected set to evaluated-now markers', () => {
+    const registry = createCoreParameterRegistry();
+    const runner = new SimulationRunner(createPhasedSamplingFixtureScenario(), registry);
+    const controller = new SimulationController(runner);
+    const adapter = new PresentationEvidenceAdapterV1(new TeachingModelEvidenceBackendV1(runner));
+
+    controller.stepPhase();
+    const evidence = adapter.read();
+    const sampling = evidence.scheduler.sampling;
+    expect(sampling).not.toBeNull();
+    if (sampling == null) {
+      throw new Error('Expected phased sampling evidence.');
+    }
+
+    const examined = evidence.traceRecords.filter(
+      (record) => record.tick === sampling.lastExecutedTick && record.type === 'cell-examined',
+    );
+    expect(examined).toHaveLength(sampling.selectedCellCount);
+
+    const view = buildAppPresentationViewModel(controller.getViewModel(), evidence, registry);
+    const evaluated = view.world.overlays.filter((marker) => marker.kind === 'evaluated-now');
+    const deferred = view.world.overlays.filter((marker) => marker.kind === 'active-not-selected');
+    expect(evaluated).toHaveLength(sampling.selectedCellCount);
+    expect(deferred).toHaveLength(sampling.activeCellCount - sampling.selectedCellCount);
+    expect(view.world.latestEvidenceTick).toBe(sampling.lastExecutedTick);
   });
 
   it('derives current and pending parameter state from registry metadata and evidence', () => {

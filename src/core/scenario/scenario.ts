@@ -134,7 +134,7 @@ export function createSleepWakeFixtureScenario(seed = 0x51ee91a5): CoreScenario 
   });
 }
 
-export function createPhasedSamplingFixtureScenario(seed = 0x0f45ed5a): CoreScenario {
+function createPhasedWorld(): WorldSnapshot {
   const width = 36;
   const height = 22;
   const cells = emptyBoundedWorld(width, height);
@@ -153,22 +153,46 @@ export function createPhasedSamplingFixtureScenario(seed = 0x0f45ed5a): CoreScen
       }
     }
   }
+  return freezeWorld(width, height, cells);
+}
+
+export function createPhasedSamplingFixtureScenario(seed = 0x0f45ed5a): CoreScenario {
+  const parameters = {
+    ...coreDefaults(),
+    [CoreParameterId.phasedPhaseCount]: 4,
+    [CoreParameterId.phasedPattern]: 'diagonal-lattice',
+  };
 
   return normalizeScenario({
     version: SCENARIO_SCHEMA_VERSION,
-    id: 'fixture-phased-sampling',
-    title: 'Phased sampling fixture',
+    id: 'sd-007-phased-sampling-slow',
+    title: 'Phased sampling — slow teaching view',
     seed: seed >>> 0,
     simulation: { model: 'falling-sand-v1' },
-    scheduler: { strategy: 'phase-clock-v1', phaseCount: 4 },
-    world: freezeWorld(width, height, cells),
-    parameters: coreDefaults(),
+    scheduler: { strategy: 'phased-sampling-v1', phaseCount: 4 },
+    world: createPhasedWorld(),
+    parameters,
     events: [],
     presentation: {
       defaultPlaybackRate: 0.25,
       showGrid: true,
       notes:
-        'Four-phase clock fixture for SD-007. It does not select sparse cell subsets until that issue.',
+        'Teaching model: each interior candidate belongs to exactly one diagonal phase bucket. Slow playback exposes the real sparse selection one phase at a time.',
+    },
+  });
+}
+
+export function createPhasedSamplingNormalScenario(seed = 0x0f45ed5a): CoreScenario {
+  const slow = createPhasedSamplingFixtureScenario(seed);
+  return normalizeScenario({
+    ...slow,
+    id: 'sd-007-phased-sampling-normal',
+    title: 'Phased sampling — normal-speed view',
+    presentation: {
+      ...slow.presentation,
+      defaultPlaybackRate: 1,
+      notes:
+        'Same deterministic phased teaching scheduler at normal speed, demonstrating coherent macroscopic motion while sparse subsets advance within each logical frame.',
     },
   });
 }
@@ -177,4 +201,5 @@ export const SCENARIO_FIXTURE_FACTORIES = Object.freeze({
   default: createDefaultScenario,
   localizedDisturbance: createSleepWakeFixtureScenario,
   phasedSampling: createPhasedSamplingFixtureScenario,
+  phasedSamplingNormal: createPhasedSamplingNormalScenario,
 });

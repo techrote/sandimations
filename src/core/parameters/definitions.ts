@@ -45,6 +45,8 @@ export const CoreParameterId = Object.freeze({
   chunkSleepDelay: 'scheduler.chunk.sleep-delay',
   chunkActivityThreshold: 'scheduler.chunk.activity-threshold',
   chunkWakeRadius: 'scheduler.chunk.wake-radius',
+  phasedPhaseCount: 'scheduler.phased.phase-count',
+  phasedPattern: 'scheduler.phased.pattern',
 } as const);
 
 export const CORE_PARAMETER_DEFINITIONS: readonly ParameterDefinition[] = Object.freeze([
@@ -129,6 +131,32 @@ export const CORE_PARAMETER_DEFINITIONS: readonly ParameterDefinition[] = Object
     max: 2,
     step: 1,
     mutation: 'next-step',
+    serialization: 'always',
+  }),
+  Object.freeze({
+    id: CoreParameterId.phasedPhaseCount,
+    label: 'Sampling phases',
+    help: 'Number of interleaved sampling subsets in one logical frame. Reset rebuilds the phase partition.',
+    kind: 'integer',
+    defaultValue: 4,
+    min: 2,
+    max: 8,
+    step: 1,
+    mutation: 'reset-required',
+    serialization: 'always',
+  }),
+  Object.freeze({
+    id: CoreParameterId.phasedPattern,
+    label: 'Sampling pattern',
+    help: 'Spatial rule assigning each active cell to exactly one phase. Reset rebuilds the partition.',
+    kind: 'enum',
+    defaultValue: 'diagonal-lattice',
+    options: Object.freeze([
+      Object.freeze({ value: 'diagonal-lattice', label: 'Diagonal lattice' }),
+      Object.freeze({ value: 'vertical-stripes', label: 'Vertical stripes' }),
+      Object.freeze({ value: 'seeded-hash', label: 'Seeded hash' }),
+    ]),
+    mutation: 'reset-required',
     serialization: 'always',
   }),
 ]);

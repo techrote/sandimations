@@ -1,6 +1,7 @@
 import type { WorldSnapshot } from '../model/world';
 import type { ParameterMutationRecord, ParameterStoreSnapshot } from '../parameters/store';
 import type { ChunkSchedulerSnapshot } from '../scheduler/chunk-sleep-wake';
+import type { PhasedSamplingSnapshot } from '../scheduler/phased-sampling';
 
 export interface HashableRunnerState {
   readonly scenarioId: string;
@@ -13,6 +14,7 @@ export interface HashableRunnerState {
   readonly world: WorldSnapshot;
   readonly parameters: ParameterStoreSnapshot;
   readonly chunkScheduler?: ChunkSchedulerSnapshot | null;
+  readonly phasedSampling?: PhasedSamplingSnapshot | null;
 }
 
 function fnv1a(text: string): string {
@@ -64,6 +66,14 @@ export function hashDeterministicState(state: HashableRunnerState): string {
       `chunks=${state.chunkScheduler.chunkSize}:${state.chunkScheduler.chunks
         .map((chunk) => `${chunk.id}:${chunk.state}:${chunk.quietFrames}:${chunk.reason ?? ''}`)
         .join(',')}`,
+    );
+  }
+  if (state.phasedSampling !== undefined && state.phasedSampling !== null) {
+    const sampling = state.phasedSampling;
+    canonical.push(
+      `sampling=${sampling.phaseCount}:${sampling.pattern}:${sampling.seed >>> 0}:${sampling.activeCellCount}:${sampling.selectedCellCount}:${sampling.lastExecutedPhase ?? ''}:${sampling.lastExecutedTick ?? ''}:${sampling.cells
+        .map((cell) => `${cell.x},${cell.y},${cell.assignedPhase},${cell.lastSelectedTick ?? ''}`)
+        .join(';')}`,
     );
   }
 

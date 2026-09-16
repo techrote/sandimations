@@ -2,7 +2,11 @@ import './styles.css';
 import { TeachingModelEvidenceBackendV1 } from './adapters/evidence-backend';
 import { createCoreParameterRegistry } from './core/parameters/registry';
 import { SimulationRunner } from './core/runner/runner';
-import { createSleepWakeFixtureScenario } from './core/scenario/scenario';
+import {
+  createPhasedSamplingFixtureScenario,
+  createPhasedSamplingNormalScenario,
+  createSleepWakeFixtureScenario,
+} from './core/scenario/scenario';
 import { PresentationEvidenceAdapterV1 } from './presentation/evidence-adapter';
 import { SimulationController } from './presentation/simulation-controller';
 import { mountApp } from './ui/app';
@@ -13,8 +17,17 @@ if (root === null) {
   throw new Error('Sandimations app root was not found.');
 }
 
+const demo = new URLSearchParams(window.location.search).get('scenario');
+const scenario =
+  demo === 'chunk-sleep-wake'
+    ? createSleepWakeFixtureScenario()
+    : demo === 'phased-normal'
+      ? createPhasedSamplingNormalScenario()
+      : createPhasedSamplingFixtureScenario();
+
 const registry = createCoreParameterRegistry();
-const runner = new SimulationRunner(createSleepWakeFixtureScenario(), registry);
+const runner = new SimulationRunner(scenario, registry);
+runner.setPlaybackRate(scenario.presentation.defaultPlaybackRate);
 runner.play();
 const controller = new SimulationController(runner);
 const evidence = new PresentationEvidenceAdapterV1(new TeachingModelEvidenceBackendV1(runner));

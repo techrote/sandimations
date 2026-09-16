@@ -19,6 +19,11 @@ import {
   type ChunkWakeReason,
 } from '../scheduler/chunk-sleep-wake';
 import {
+  PhasedSamplingScheduler,
+  type PhasedSamplingPattern,
+  type PhasedSamplingSnapshot,
+} from '../scheduler/phased-sampling';
+import {
   createEvidenceProvenanceV1,
   type CellRefV1,
   type ChunkRefV1,
@@ -41,6 +46,7 @@ export interface RunnerSnapshot {
   readonly world: WorldSnapshot;
   readonly parameters: ParameterStoreSnapshot;
   readonly chunkScheduler: ChunkSchedulerSnapshot | null;
+  readonly phasedSampling: PhasedSamplingSnapshot | null;
   readonly playing: boolean;
   readonly playbackRate: number;
 }
@@ -50,6 +56,13 @@ function tieBreakMode(value: string): SandTieBreakMode {
     return value;
   }
   throw new Error(`Unsupported sand tie-break mode: ${value}.`);
+}
+
+function phasedPattern(value: string): PhasedSamplingPattern {
+  if (value === 'diagonal-lattice' || value === 'vertical-stripes' || value === 'seeded-hash') {
+    return value;
+  }
+  throw new Error(`Unsupported phased sampling pattern: ${value}.`);
 }
 
 function traceChunkRef(chunk: ChunkStateSnapshot | ChunkRef): ChunkRefV1 {
@@ -62,6 +75,7 @@ export class SimulationRunner {
   private prng: SeededPrng;
   private parameters: ParameterStore;
   private chunkScheduler: ChunkSleepWakeScheduler | null = null;
+  private phasedSampling: PhasedSamplingScheduler | null = null;
   private readonly resetOverrides = new Map<string, ParameterValue>();
   private readonly evidence: EvidenceRecorderV1;
   private frame = 0;
@@ -81,6 +95,7 @@ export class SimulationRunner {
     this.prng = new SeededPrng(this.getEffectiveSeed());
     this.evidence = new EvidenceRecorderV1(this.createProvenance());
     this.chunkScheduler = this.createChunkScheduler();
+    this.phasedSampling = this.createPhasedSamplingScheduler();
   }
 
   public play(): void {
@@ -125,6 +140,14 @@ export class SimulationRunner {
     for (let index = 0; index < count; index += 1) {
       this.advanceToNextFrame();
     }
+  }
+
+  public advancePlaybackPhase(): boolean {
+    if (!this.playing) {
+      return false;
+    }
+    this.advanceOnePhase();
+    return true;
   }
 
   public advancePlaybackFrame(): boolean {
@@ -177,11 +200,12 @@ export class SimulationRunner {
       frame: this.frame,
       phase: this.phase,
       tick: this.tick,
-      phaseCount: this.scenario.scheduler.phaseCount,
+      phaseCount: this.getPhaseCount(),
       prngState: this.prng.getState(),
       world: this.world.toSnapshot(),
       parameters: this.parameters.getSnapshot(),
       chunkScheduler: this.chunkScheduler?.getSnapshot() ?? null,
+      phasedSampling: this.phasedSampling?.getSnapshot() ?? null,
       playing: this.playing,
       playbackRate: this.playbackRate,
     });
@@ -211,6 +235,10 @@ export class SimulationRunner {
     return this.chunkScheduler?.getSnapshot() ?? null;
   }
 
+  public getPhasedSamplingSnapshot(): PhasedSamplingSnapshot | null {
+    return this.phasedSampling?.getSnapshot() ?? null;
+  }
+
   private createProvenance(): EvidenceProvenanceV1 {
     return createEvidenceProvenanceV1({
       backendId: 'sandimations-teaching-model-v1',
@@ -238,6 +266,7 @@ export class SimulationRunner {
     this.playing = false;
     this.evidence.reset(this.createProvenance());
     this.chunkScheduler = this.createChunkScheduler();
+    this.phasedSampling = this.createPhasedSamplingScheduler();
   }
 
   private createChunkScheduler(): ChunkSleepWakeScheduler | null {
@@ -271,6 +300,20 @@ export class SimulationRunner {
     );
   }
 
+  private createPhasedSamplingScheduler(): PhasedSamplingScheduler | null {
+    if (this.scenario.scheduler.strategy !== 'phased-sampling-v1') {
+      return null;
+    }
+
+    return new PhasedSamplingScheduler(
+      this.world.width,
+      this.world.height,
+      this.parameters.getNumber(CoreParameterId.phasedPhaseCount),
+      phasedPattern(this.parameters.getString(CoreParameterId.phasedPattern)),
+      this.getEffectiveSeed(),
+    );
+  }
+
   private recordChunkWake(
     chunk: ChunkStateSnapshot,
     reason: ChunkWakeReason,
@@ -294,6 +337,12 @@ export class SimulationRunner {
     return (this.scenario.seed ^ variant) >>> 0;
   }
 
+  private getPhaseCount(): number {
+    return this.scenario.scheduler.strategy === 'phased-sampling-v1'
+      ? this.parameters.getNumber(CoreParameterId.phasedPhaseCount)
+      : this.scenario.scheduler.phaseCount;
+  }
+
   private advanceToNextFrame(): void {
     const targetFrame = this.frame + 1;
     while (this.frame < targetFrame) {
@@ -309,27 +358,58 @@ export class SimulationRunner {
     const context = this.currentTraceContext();
     this.applyScenarioEventsAtCurrentTick();
     this.parameters.applyNextStep();
+    const phaseCount = this.getPhaseCount();
     this.evidence.record(context, {
       type: 'phase-started',
-      phaseCount: this.scenario.scheduler.phaseCount,
+      phaseCount,
     });
 
-    const completesFrame = this.phase + 1 >= this.scenario.scheduler.phaseCount;
-    if (completesFrame) {
+    const completesFrame = this.phase + 1 >= phaseCount;
+    if (this.phasedSampling !== null) {
+      this.executePhasedWork(context, phaseCount);
+    } else if (completesFrame) {
       this.executeFrameWork(context);
     }
 
     this.evidence.record(context, {
       type: 'phase-completed',
-      phaseCount: this.scenario.scheduler.phaseCount,
+      phaseCount,
     });
 
     this.tick += 1;
     this.phase += 1;
-    if (this.phase >= this.scenario.scheduler.phaseCount) {
+    if (this.phase >= phaseCount) {
       this.phase = 0;
       this.frame += 1;
     }
+  }
+
+  private executePhasedWork(context: TraceContextV1, phaseCount: number): void {
+    const scheduler = this.phasedSampling;
+    if (scheduler === null) {
+      return;
+    }
+
+    const selected = scheduler.beginPhase(this.phase, this.tick);
+    const sampling = scheduler.getSnapshot();
+    this.evidence.record(context, {
+      type: 'phase-selection',
+      pattern: sampling.pattern,
+      phaseCount,
+      selectedCount: selected.length,
+      activeCount: sampling.activeCellCount,
+    });
+
+    if (!this.parameters.getBoolean(CoreParameterId.sandEnabled)) {
+      return;
+    }
+
+    this.world.stepSandCells(
+      this.prng,
+      tieBreakMode(this.parameters.getString(CoreParameterId.sandTieBreak)),
+      selected,
+      this.createSandObserver(context),
+    );
   }
 
   private executeFrameWork(context: TraceContextV1): void {

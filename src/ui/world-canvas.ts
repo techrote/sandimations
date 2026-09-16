@@ -2,6 +2,7 @@ import type {
   CellOverlayMarker,
   ChunkPresentationRegion,
   OverlayKind,
+  SamplingPresentationState,
   WorldPresentationViewModel,
 } from '../presentation/app-view-model';
 
@@ -37,10 +38,11 @@ function drawOverlay(
       context.fill();
       break;
     case 'active-not-selected':
-      context.strokeStyle = '#80d7e5';
+      context.strokeStyle = 'rgba(128, 215, 229, 0.48)';
+      context.lineWidth = 1.25;
       context.beginPath();
-      context.moveTo(left + 3, top + CELL_SIZE - 3);
-      context.lineTo(left + CELL_SIZE - 3, top + 3);
+      context.moveTo(left + 4, top + CELL_SIZE - 4);
+      context.lineTo(left + CELL_SIZE - 4, top + 4);
       context.stroke();
       break;
     case 'sleeping':
@@ -99,6 +101,42 @@ function drawChunkBoundary(
   context.restore();
 }
 
+function drawSamplingCoverage(
+  context: CanvasRenderingContext2D,
+  sampling: SamplingPresentationState,
+): void {
+  if (sampling.lastExecutedTick === null) {
+    return;
+  }
+
+  context.save();
+  for (const cell of sampling.cells) {
+    if (cell.lastSelectedTick === null) {
+      continue;
+    }
+    const age = sampling.lastExecutedTick - cell.lastSelectedTick;
+    if (age < 0 || age >= sampling.phaseCount) {
+      continue;
+    }
+    const alpha = Math.max(0.025, 0.17 - age * (0.12 / Math.max(1, sampling.phaseCount - 1)));
+    context.fillStyle = `rgba(128, 215, 229, ${alpha})`;
+    context.fillRect(cell.x * CELL_SIZE + 1, cell.y * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+
+    const phasePosition =
+      sampling.phaseCount <= 1
+        ? 0
+        : Math.round((cell.assignedPhase / (sampling.phaseCount - 1)) * (CELL_SIZE - 6));
+    context.fillStyle = 'rgba(233, 236, 225, 0.32)';
+    context.fillRect(
+      cell.x * CELL_SIZE + 2 + phasePosition,
+      cell.y * CELL_SIZE + CELL_SIZE - 3,
+      2,
+      1,
+    );
+  }
+  context.restore();
+}
+
 export function renderWorld(
   canvas: HTMLCanvasElement,
   view: WorldPresentationViewModel,
@@ -133,6 +171,10 @@ export function renderWorld(
         context.strokeRect(x * CELL_SIZE + 0.5, y * CELL_SIZE + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
       }
     }
+  }
+
+  if (view.sampling !== null) {
+    drawSamplingCoverage(context, view.sampling);
   }
 
   for (const chunk of view.chunks) {

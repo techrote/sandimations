@@ -98,6 +98,10 @@ export class SimulationController {
     this.runner.reset();
   }
 
+  public advancePlaybackPhase(): boolean {
+    return this.runner.advancePlaybackPhase();
+  }
+
   public advancePlaybackFrame(): boolean {
     return this.runner.advancePlaybackFrame();
   }
