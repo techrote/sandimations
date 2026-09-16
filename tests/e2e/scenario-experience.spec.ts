@@ -18,6 +18,22 @@ test.describe('SD-009 scenario experience', () => {
     await expect(page.getByTestId('timeline-list')).not.toContainText('tick 2');
   });
 
+  test('replaces single and comparison runtimes without stale controls or clocks', async ({ page }) => {
+    await page.goto('/?v=1&scenario=falling-sand&tick=2&paused=1&speed=50&view=inspect&history=128');
+    await expect(page.getByTestId('tick-count')).toHaveText('2');
+
+    await page.getByTestId('scenario-picker').selectOption('compare-phased');
+    await expect(page.getByTestId('scenario-picker')).toHaveValue('compare-phased');
+    await expect(page.getByTestId('comparison-clock')).toContainText('tick 0');
+    await expect(page.getByTestId('comparison-baseline-canvas')).toBeVisible();
+    await expect(page.getByTestId('comparison-optimized-canvas')).toBeVisible();
+    await expect(page.getByTestId('tick-count')).toHaveCount(0);
+
+    await page.getByTestId('scenario-picker').selectOption('falling-sand');
+    await expect(page.getByTestId('tick-count')).toHaveText('0');
+    await expect(page.getByTestId('comparison-clock')).toHaveCount(0);
+  });
+
   test('reopens a copied canonical URL at materially equivalent deterministic state', async ({
     page,
   }) => {
