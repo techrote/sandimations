@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-async function pauseAndReset(page: Parameters<Parameters<typeof test>[1]>[0]['page']) {
+async function pauseAndReset(page: Page): Promise<void> {
   const playPause = page.getByTestId('comparison-play-pause');
   if ((await playPause.textContent()) === 'Pause') await playPause.click();
   await page.getByTestId('comparison-reset').click();
