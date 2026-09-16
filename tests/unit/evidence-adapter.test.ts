@@ -8,7 +8,10 @@ import {
 import { Material } from '../../src/core/model/material';
 import { SimulationRunner } from '../../src/core/runner/runner';
 import { createDefaultScenario } from '../../src/core/scenario/scenario';
-import { PresentationEvidenceAdapterV1 } from '../../src/presentation/evidence-adapter';
+import {
+  DEFAULT_PRESENTATION_TRACE_RECORDS,
+  PresentationEvidenceAdapterV1,
+} from '../../src/presentation/evidence-adapter';
 
 function mockBackendSnapshot(): BackendEvidenceSnapshotV1 {
   const runner = new SimulationRunner(createDefaultScenario(1234));
@@ -72,7 +75,9 @@ describe('backend and presentation evidence adapters', () => {
     const mockView = new PresentationEvidenceAdapterV1(new StaticBackend(mockSnapshot)).read();
 
     expect(teachingView.provenance.backendKind).toBe('teaching-model');
-    expect(teachingView.traceRecords).toEqual(teaching.readEvidence().trace.records);
+    expect(teachingView.traceRecords).toEqual(
+      teaching.readEvidence().trace.records.slice(-DEFAULT_PRESENTATION_TRACE_RECORDS),
+    );
     expect(mockView.simulation.scenarioId).toBe(mockSnapshot.simulation.scenarioId);
     expect(mockView.metrics).toEqual(mockSnapshot.metrics);
   });
