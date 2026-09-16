@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-async function expectNoHorizontalOverflow(page: import('@playwright/test').Page): Promise<void> {
+async function expectNoHorizontalOverflow(
+  page: import('@playwright/test').Page,
+): Promise<void> {
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
@@ -34,7 +36,9 @@ test('scenario, sharing, and timeline interactions are keyboard operable with ac
 });
 
 for (const width of [360, 768, 1440]) {
-  test(`single-world layout remains usable without document overflow at ${width}px`, async ({ page }) => {
+  test(`single-world layout remains usable without document overflow at ${width}px`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/?scenario=phased-slow');
 
@@ -45,7 +49,9 @@ for (const width of [360, 768, 1440]) {
     await expectNoHorizontalOverflow(page);
   });
 
-  test(`comparison layout remains usable without document overflow at ${width}px`, async ({ page }) => {
+  test(`comparison layout remains usable without document overflow at ${width}px`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/?scenario=compare-phased');
 
