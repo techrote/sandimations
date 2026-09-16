@@ -1,15 +1,14 @@
 import type { DeterministicMetricsSnapshotV1 } from '../metrics/metrics';
 import type { WorldSnapshot } from '../model/world';
-import type { ParameterValue } from '../parameters/definitions';
 import { createCoreParameterRegistry, type ParameterRegistry } from '../parameters/registry';
-import { SimulationRunner, type RunnerSnapshot } from '../runner/runner';
+import { SimulationRunner } from '../runner/runner';
 import type { RunnerInput } from '../runner/input';
 import { normalizeScenario, type CoreScenario } from '../scenario/schema';
 import type { EvidenceProvenanceV1 } from '../trace/protocol';
 
 export const COMPARISON_SCHEMA_VERSION = 1 as const;
 export const MATERIAL_DIVERGENCE_METRIC_ID = 'cell-material-hamming-v1' as const;
-export const FULL_SCAN_REFERENCE_STRATEGY = 'full-scan-reference-v1' as const;
+export const FULL_SCAN_REFERENCE_STRATEGY = 'phase-clock-v1' as const;
 
 export type ComparisonRoleV1 = 'baseline' | 'optimized';
 
@@ -51,28 +50,14 @@ export interface ComparisonSnapshotV1 {
   readonly divergence: ProvenancedMaterialStateDivergenceV1;
 }
 
-function parameterValues(snapshot: RunnerSnapshot): Readonly<Record<string, ParameterValue>> {
-  return Object.freeze(
-    Object.fromEntries(snapshot.parameters.values.map((entry) => [entry.id, entry.value])),
-  );
-}
-
-export function createFullScanReferenceScenario(
-  source: CoreScenario,
-  phaseCount = source.scheduler.phaseCount,
-  parameters: Readonly<Record<string, ParameterValue>> = source.parameters,
-): CoreScenario {
+export function createFullScanReferenceScenario(source: CoreScenario): CoreScenario {
   return normalizeScenario({
     ...source,
-    scheduler: {
-      strategy: FULL_SCAN_REFERENCE_STRATEGY,
-      phaseCount,
-    },
-    parameters,
+    scheduler: { strategy: FULL_SCAN_REFERENCE_STRATEGY, phaseCount: 1 },
     presentation: {
       ...source.presentation,
       notes:
-        'SD-008 full-scan reference: evaluates the complete interior at every scheduler opportunity. It is a deterministic work reference, not a claim of physical equivalence or wall-clock speed.',
+        'SD-008 baseline role: one deterministic full interior scan for every comparison scheduler tick. This is a work reference, not a wall-clock speed or physical-equivalence claim.',
     },
   });
 }
@@ -90,9 +75,7 @@ export function measureMaterialStateDivergence(
 
   let mismatchedCells = 0;
   for (let index = 0; index < baseline.cells.length; index += 1) {
-    if (baseline.cells[index] !== optimized.cells[index]) {
-      mismatchedCells += 1;
-    }
+    if (baseline.cells[index] !== optimized.cells[index]) mismatchedCells += 1;
   }
 
   return Object.freeze({
@@ -103,15 +86,15 @@ export function measureMaterialStateDivergence(
   });
 }
 
-function sideMetrics(role: ComparisonRoleV1, runner: SimulationRunner): ComparisonSideMetricsV1 {
-  const snapshot = runner.getSnapshot();
+function sideMetrics(
+  role: ComparisonRoleV1,
+  runner: SimulationRunner,
+  comparisonClock: Readonly<{ frame: number; phase: number; tick: number; phaseCount: number }>,
+): ComparisonSideMetricsV1 {
   return Object.freeze({
     role,
     provenance: runner.getProvenance(),
-    frame: snapshot.frame,
-    phase: snapshot.phase,
-    tick: snapshot.tick,
-    phaseCount: snapshot.phaseCount,
+    ...comparisonClock,
     metrics: runner.getMetricsSnapshot(),
   });
 }
@@ -130,7 +113,6 @@ function workRatio(
       reductionFraction: null,
     });
   }
-
   return Object.freeze({
     baselineWorkUnits,
     optimizedWorkUnits,
@@ -141,8 +123,7 @@ function workRatio(
 
 export class DeterministicComparison {
   private readonly scenario: CoreScenario;
-  private baselineScenario: CoreScenario;
-  private baseline: SimulationRunner;
+  private readonly baseline: SimulationRunner;
   private readonly optimized: SimulationRunner;
 
   public constructor(
@@ -158,12 +139,10 @@ export class DeterministicComparison {
         'SD-008 comparison requires a chunk-sleep-wake-v1 or phased-sampling-v1 optimized scenario.',
       );
     }
-
-    this.baselineScenario = createFullScanReferenceScenario(this.scenario);
-    this.baseline = new SimulationRunner(this.baselineScenario, registry);
+    this.baseline = new SimulationRunner(createFullScanReferenceScenario(this.scenario), registry);
     this.optimized = new SimulationRunner(this.scenario, registry);
     this.setPlaybackRate(this.scenario.presentation.defaultPlaybackRate);
-    this.assertSynchronizedClock();
+    this.assertSynchronizedTick();
   }
 
   public getBaselineRunner(): SimulationRunner {
@@ -209,16 +188,13 @@ export class DeterministicComparison {
 
   public stepPhase(): void {
     this.pause();
-    this.baseline.stepPhase();
-    this.optimized.stepPhase();
-    this.assertSynchronizedClock();
+    this.advanceOneComparisonTick(false);
   }
 
   public stepFrame(): void {
     this.pause();
-    this.baseline.stepFrame();
-    this.optimized.stepFrame();
-    this.assertSynchronizedClock();
+    const targetFrame = this.optimized.getSnapshot().frame + 1;
+    while (this.optimized.getSnapshot().frame < targetFrame) this.advanceOneComparisonTick(false);
   }
 
   public stepFrames(count: number): void {
@@ -227,22 +203,14 @@ export class DeterministicComparison {
     }
     this.pause();
     for (let index = 0; index < count; index += 1) {
-      this.baseline.stepFrame();
-      this.optimized.stepFrame();
-      this.assertSynchronizedClock();
+      const targetFrame = this.optimized.getSnapshot().frame + 1;
+      while (this.optimized.getSnapshot().frame < targetFrame) this.advanceOneComparisonTick(false);
     }
   }
 
   public advancePlaybackPhase(): boolean {
-    if (!this.isPlaying()) {
-      return false;
-    }
-    const baselineAdvanced = this.baseline.advancePlaybackPhase();
-    const optimizedAdvanced = this.optimized.advancePlaybackPhase();
-    if (!baselineAdvanced || !optimizedAdvanced) {
-      throw new Error('Comparison runners did not advance playback together.');
-    }
-    this.assertSynchronizedClock();
+    if (!this.isPlaying()) return false;
+    this.advanceOneComparisonTick(true);
     return true;
   }
 
@@ -258,34 +226,28 @@ export class DeterministicComparison {
   }
 
   public reset(): void {
-    const playbackRate = this.getPlaybackRate();
+    const rate = this.getPlaybackRate();
     this.baseline.reset();
     this.optimized.reset();
-
-    const optimizedSnapshot = this.optimized.getSnapshot();
-    const baselineSnapshot = this.baseline.getSnapshot();
-    if (baselineSnapshot.phaseCount !== optimizedSnapshot.phaseCount) {
-      this.baselineScenario = createFullScanReferenceScenario(
-        this.scenario,
-        optimizedSnapshot.phaseCount,
-        parameterValues(baselineSnapshot),
-      );
-      this.baseline.loadScenario(this.baselineScenario);
-    }
-
-    this.setPlaybackRate(playbackRate);
-    this.assertSynchronizedClock();
+    this.setPlaybackRate(rate);
+    this.assertSynchronizedTick();
   }
 
   public getSnapshot(): ComparisonSnapshotV1 {
-    this.assertSynchronizedClock();
-    const baselineSide = sideMetrics('baseline', this.baseline);
-    const optimizedSide = sideMetrics('optimized', this.optimized);
+    this.assertSynchronizedTick();
+    const clock = this.optimized.getSnapshot();
+    const comparisonClock = Object.freeze({
+      frame: clock.frame,
+      phase: clock.phase,
+      tick: clock.tick,
+      phaseCount: clock.phaseCount,
+    });
+    const baselineSide = sideMetrics('baseline', this.baseline, comparisonClock);
+    const optimizedSide = sideMetrics('optimized', this.optimized, comparisonClock);
     const measured = measureMaterialStateDivergence(
       this.baseline.getSnapshot().world,
       this.optimized.getSnapshot().world,
     );
-
     return Object.freeze({
       version: COMPARISON_SCHEMA_VERSION,
       scenarioId: this.scenario.id,
@@ -300,17 +262,26 @@ export class DeterministicComparison {
     });
   }
 
-  private assertSynchronizedClock(): void {
-    const baseline = this.baseline.getSnapshot();
-    const optimized = this.optimized.getSnapshot();
-    if (
-      baseline.frame !== optimized.frame ||
-      baseline.phase !== optimized.phase ||
-      baseline.tick !== optimized.tick ||
-      baseline.phaseCount !== optimized.phaseCount
-    ) {
+  private advanceOneComparisonTick(playback: boolean): void {
+    if (playback) {
+      const baselineAdvanced = this.baseline.advancePlaybackFrame();
+      const optimizedAdvanced = this.optimized.advancePlaybackPhase();
+      if (!baselineAdvanced || !optimizedAdvanced) {
+        throw new Error('Comparison runners did not advance playback together.');
+      }
+    } else {
+      this.baseline.stepFrame();
+      this.optimized.stepPhase();
+    }
+    this.assertSynchronizedTick();
+  }
+
+  private assertSynchronizedTick(): void {
+    const baselineTick = this.baseline.getSnapshot().tick;
+    const optimizedTick = this.optimized.getSnapshot().tick;
+    if (baselineTick !== optimizedTick) {
       throw new Error(
-        `Comparison runner clocks diverged: baseline ${baseline.frame}/${baseline.phase}/${baseline.tick}/${baseline.phaseCount}, optimized ${optimized.frame}/${optimized.phase}/${optimized.tick}/${optimized.phaseCount}.`,
+        `Comparison runner ticks diverged: baseline ${baselineTick}, optimized ${optimizedTick}.`,
       );
     }
   }
