@@ -2,256 +2,134 @@
 
 ## Design principle
 
-The visualization must observe algorithm/model state, not contain the algorithm itself.
-
-Sandimations is split into replaceable layers so the first simplified teaching model can later be replaced by recorded CyberSand traces or a C++/WASM implementation without rewriting the presentation layer.
-
-## Layer model
+The visualization observes deterministic model/scheduler evidence; it does not contain the simulation or optimization algorithm. Sandimations is layered so the current TypeScript teaching model can later be replaced by recorded CyberSand traces or a C++/WASM backend without replacing the explanatory UI.
 
 ```text
-Scenario / Input events
-        |
-        v
-+----------------------+      +----------------------+
-| deterministic runner |<---->| typed parameter store|
-+----------------------+      +----------------------+
-        |
-        +--> simulation model
-        +--> scheduler model
-        +--> trace/event stream
-        +--> metrics snapshots
-        |
-        v
-+----------------------+
-| evidence backend     |
-+----------------------+
-        |
-        v
-+----------------------+
-| presentation adapter |
-+----------------------+
-        |
-        +--> renderer
-        +--> timeline / inspector
-        +--> charts / counters
-        +--> controls
+scenario / ordered input + parameter events
+              ↓
+      deterministic runner
+        ↙      ↓       ↘
+ simulation  scheduler  trace + deterministic metrics
+              ↓
+       evidence backend
+              ↓
+     presentation adapters
+        ↙       ↓        ↘
+   Canvas/UI  timeline  comparison/share tools
 ```
 
-## Required boundaries
+## Deterministic core
 
-### Simulation state
+`src/core/` owns the logical world, seeded PRNG, fixed-step runner, typed parameter state, scenario normalization, schedulers, trace records, metrics, and deterministic comparison orchestration. It must not depend on DOM APIs, animation frames, browser timers, wall-clock time, locale-sensitive ordering, or `Math.random()`.
 
-Owns material/cell state and deterministic physical rules. It must not depend on DOM state, animation frames, wall-clock time, or renderer objects.
+For identical scenario/seed, ordered deterministic inputs, parameter mutations, and runner commands, core state, trace sequence, and deterministic metrics must be identical regardless of rendering cadence or browser observation.
 
-### Scheduler state
+### Runner clock
 
-Owns optimization-specific scheduling facts: chunks, sleep/wake state, phase selection, pending work, and scheduler counters. The scheduler may influence which simulation work executes, but its state remains inspectable independently from the rendered material state.
+The runner owns progression. Rendering never advances physics implicitly.
 
-### Runner / simulation clock
-
-Owns progression. It converts explicit commands into deterministic simulation advancement.
-
-Minimum command vocabulary:
-
-- `play()` / `pause()` plus explicit playback-rate state;
-- `stepPhase()`;
-- `stepFrame()`;
-- `stepFrames(n)`;
-- `reset()`;
-- load/reload scenario;
-- apply deterministic input event;
-- apply parameter mutation according to its declared semantics.
-
-A renderer call must never advance the model implicitly.
-
-#### SD-002 concrete semantics
-
-The initial runner makes phase and frame separate concepts without implementing phased sampling early:
-
-- `tick` is the monotonic count of executed scheduler phases;
+- `tick` counts executed scheduler phases;
 - `phase` is the zero-based next phase in the current logical frame;
-- completing the configured phase cycle advances the teaching-world physics once and increments `frame`;
-- the default scenario has `phaseCount = 1`; a prepared SD-003 fixture has a four-phase clock, but sparse phase selection remains deferred to SD-007;
-- manual step commands pause continuous playback before advancing exactly the requested logical work;
-- browser playback scheduling lives outside `src/core/`; it requests fixed logical frames according to the selected rate;
-- playback rate and play/pause state are controls, not physics inputs, and are excluded from deterministic state hashes;
-- reset reconstructs the world, PRNG, counters, event cursor, parameter store, trace sequence, and deterministic metrics from the scenario baseline plus any already-applied reset-required configuration, while preserving the selected playback rate and pausing execution.
+- completing the configured phase cycle increments `frame`;
+- `stepPhase()`, `stepFrame()`, and `stepFrames(n)` pause playback before doing exactly the requested work;
+- `reset()` reconstructs deterministic world/PRNG/event/parameter/scheduler/trace/metric state;
+- playback rate and play/pause state are browser scheduling controls and are excluded from deterministic state hashes.
 
-### Parameter registry
+### Parameters
 
-Parameters are schema-driven. UI controls are generated from or bound to parameter definitions rather than owning settings themselves.
+Definitions declare stable ID, label/help, kind, bounds/options/default, mutation timing, and serialization behavior. Mutation modes are:
 
-Mutation modes are:
+- `live` — current immediately;
+- `next-step` — queued and applied at the next scheduler boundary;
+- `reset-required` — queued until explicit reset, then incorporated into persistent reset configuration.
 
-- `live`: validated value becomes current immediately for the running simulation;
-- `next-step`: mutation is queued in deterministic request order and applied at the next scheduler phase boundary before that phase executes;
-- `reset-required`: mutation is queued until explicit runner reset, then folded into persistent reset configuration before deterministic parameter/world/PRNG/counter reconstruction.
-
-A reset clears runtime live/next-step experimentation back to the scenario's initial parameter values. Applied reset-required configuration persists across subsequent resets until a new scenario is loaded. This lets scripted live/next-step events replay from the same baseline after reset.
-
-Definitions also declare stable IDs, labels/help, value kinds, bounds/options/defaults, and serialization behavior. Unknown parameter IDs and invalid values fail closed. Registry ordering uses a locale-independent code-point comparison rather than browser/OS locale collation.
-
-#### SD-003 concrete parameter semantics
-
-The first registered parameters intentionally exercise all mutation modes without implementing future optimization systems:
-
-- `simulation.sand.enabled` — live boolean controlling whether a completed frame performs sand motion;
-- `simulation.sand.tie-break` — next-step enum selecting seeded-random, left-first, or right-first diagonal resolution;
-- `simulation.seed-variant` — reset-required integer XORed into the scenario seed during deterministic reconstruction.
-
-Current values and pending deterministic mutations contribute to state hashing whenever they differ from the all-default/no-pending state. This preserves the SD-002 default hash fixtures while distinguishing states whose future behavior differs.
+Current/pending deterministic parameter state contributes to hashing whenever it can affect current or future deterministic execution.
 
 ### Scenario contract
 
-Scenario documents are data-first, versioned, validated, and canonically serializable. Schema version `1` separates:
+Scenario schema version `1` is data-first, validated, and canonically serializable. It separates simulation/world data, scheduler configuration, parameter values, ordered deterministic events, and non-authoritative presentation defaults. Unsupported versions, unknown parameters, ambiguous event ordering, and invalid values fail closed.
 
-- simulation model/world data;
-- scheduler strategy/clock configuration;
-- registered parameter values;
-- deterministic scripted input/parameter events;
-- presentation defaults.
+Release hardening adds explicit input/resource ceilings before expensive normalization: 512 cells per axis, 65,536 total world cells, and 10,000 scripted events. These limits reject unsupported input without changing deterministic interpretation of accepted scenarios. See `docs/SCENARIO_SCHEMA.md`.
 
-Presentation defaults are non-authoritative: they may suggest playback/view state but are not simulation inputs.
+## Scheduler teaching models
 
-Scripted events are ordered by `(tick, order)` and are applied before the scheduled phase executes. Duplicate schedule positions are invalid. Version 1 permits scripted live/next-step parameter mutations and deterministic input events; reset-required parameter changes belong in initial scenario parameters rather than hiding a reset inside event playback.
+### Chunk sleep/wake
 
-`serializeScenario()` first validates/normalizes and then emits canonical JSON with stable object-key ordering. `deserializeScenario()` parses and passes through the same validator. Unsupported versions are rejected rather than interpreted heuristically. See `docs/SCENARIO_SCHEMA.md` for the compatibility policy.
+`ChunkSleepWakeScheduler` owns fixed chunk bounds, lifecycle state, quiet counters, activity accumulation, and deterministic wake decisions. Sleeping chunks are excluded from cell evaluation, so reduced examined-cell counts represent real work avoidance. Wake trace events can carry cause-cell/cause-chunk evidence. Because chunk-scoped scan ordering differs from the full-scan reference, physical identity is not assumed; comparison mode measures divergence.
 
-### Trace protocol
+### Phased sampling
 
-Simulation and scheduler code emit structured events; presentation code does not reverse-engineer scheduler/model behavior from pixels.
+The phased scheduler deterministically assigns coordinates to phase buckets and evaluates only the current bucket each phase. Selection/coverage state is scheduler-owned and emitted through trace/evidence contracts. The renderer never manufactures a sampling mask. Evaluated-now overlays are derived from actual trace examination records, including the material-disabled case.
 
-SD-004 establishes trace protocol version `1`. A trace snapshot carries provenance plus deterministically ordered records. Every record identifies the executing logical frame, scheduler phase, scheduler tick, monotonic sequence, and event-specific evidence.
+## Trace and deterministic metrics
 
-The initial vocabulary covers:
+Trace protocol version `1` provides deterministic sequence/frame/phase/tick context plus backend/strategy/scenario provenance. It covers phase boundaries, phase selections, examined/moved/skipped/blocked cell facts, and chunk lifecycle transitions/wake causes.
 
-- phase started/completed;
-- cell examined/moved/skipped/blocked;
-- chunk activated/slept/woken.
+Metrics schema version `1` is deterministic evidence derived from the same execution path and includes cell work, chunk state/transitions, phase progress, and comparable teaching work units. Metrics are not wall-clock time and do not claim that every work unit has equal CPU cost.
 
-The current teaching world reports neutral scan observations directly from its real sand-update loop. The runner translates those observations into trace records. This keeps the physical model independent from the trace schema while ensuring highlights and counters originate from the work actually performed.
+Live trace retention is a bounded 16,384-record ring with `firstSequence`, `nextSequence`, and `droppedRecords`. Cumulative metrics remain independent of trace eviction.
 
-SD-006 now supplies real chunk transition events from `ChunkSleepWakeScheduler`. Wake events may carry structured cause cell/chunk evidence; renderer code remains a consumer rather than a lifecycle decision-maker.
+## Evidence backend and presentation adapter
 
-See `docs/TRACE_PROTOCOL.md` for the protocol, ordering, provenance, compatibility, and work-unit definitions.
+`EvidenceBackendV1` is the replaceable read seam between execution and presentation. `TeachingModelEvidenceBackendV1` adapts the live TypeScript runner and also offers an optional bounded recent-evidence read. `PresentationEvidenceAdapterV1` converts backend evidence into presentation-friendly structures without scheduler inference.
 
-### Deterministic metrics
+Live UI refresh defaults to a bounded recent trace slice rather than cloning the full ring. Reads are side-effect free and cannot advance simulation, alter trace ordering, or change deterministic metrics/state.
 
-Metrics schema version `1` is derived from the same trace records used for explanation. It includes cell counters, chunk current-state/transition counters, phase progress, and comparable deterministic work units.
+A future recorded-trace or C++/WASM backend should implement the same evidence contract instead of introducing renderer-specific algorithm knowledge.
 
-Wall-clock timing is intentionally excluded. Browser/CPU/GPU profiling may be added later as a separately labelled diagnostic channel, never mixed into deterministic work counters.
+## Presentation and UI
 
-### Evidence backend
+`src/presentation/` owns browser-independent view models, speed mapping, comparison controllers, timeline summarization, share-state encoding, demo-script command translation, and browser-diagnostic data structures. `src/ui/` owns DOM/Canvas rendering and wall-clock playback scheduling. `src/main.ts` is the browser composition root.
 
-`EvidenceBackendV1` is the replaceable read boundary between simulation evidence and presentation. One snapshot exposes:
+The UI may amplify facts visually with trails, pulses, patterns, brightness, or spatial emphasis, but every factual scheduler/material claim must originate in evidence. Critical states use redundant non-color cues. Nonessential animation respects reduced motion. Narrow layouts must avoid document-level blocking overflow.
 
-- provenance;
-- canonical simulation state and deterministic state hash;
-- scheduler state;
-- versioned trace snapshot;
-- deterministic metrics snapshot.
+### Scenario experience and sharing
 
-`TeachingModelEvidenceBackendV1` adapts the live TypeScript runner. It also offers the optional bounded recent-evidence read used by SD-005 live presentation, while `readEvidence()` remains the canonical full snapshot. Future recorded-trace and C++/WASM backends should implement the same contract rather than requiring presentation-specific scheduler logic.
+SD-009 composes the built-in scenario library, single/comparison runtimes, bounded trace-backed timeline, presentation/demo mode, and versioned shareable URL state. Share state identifies canonical scenario/parameters and deterministic replay position; it does not serialize mutable DOM state. Replay work has an explicit ceiling and unsupported/truncated state fails visibly.
 
-### Presentation adapter
+Timeline inspection is read-only. Selecting an entry never rewinds or mutates the simulation; it inspects retained trace evidence.
 
-`PresentationEvidenceAdapterV1` consumes `EvidenceBackendV1` and exposes renderer/inspector-friendly structured evidence without DOM dependencies. It does not infer scheduler decisions.
+### Comparison
 
-SD-005 adds an additive lightweight live-read path: a backend may provide a bounded recent trace slice, and the presentation adapter defaults to the newest 512 records. Backends without that optimization remain compatible through the canonical full evidence snapshot. This changes presentation-copy cost only; it does not change trace ordering, retention, metrics, or deterministic state.
+`DeterministicComparison` owns independent baseline and optimized runners created from equivalent canonical non-scheduler scenario data. Runners do not share mutable world, PRNG, parameter, scheduler, trace, or metric state. Comparison metrics preserve provenance and use the defined `cell-material-hamming-v1` divergence metric rather than assuming physical equivalence.
 
-`buildAppPresentationViewModel()` combines simulation view state, structured evidence, and the parameter registry into generic renderer/control facts. It maps overlay markers only from explicit trace evidence. Unsupported future states remain absent rather than being inferred.
+Split/overlay UI reuses normal view-model/Canvas contracts.
 
-Reading backend or presentation snapshots is side-effect free and cannot advance physics, alter trace ordering, or change metrics.
+## Browser-only performance diagnostics
 
-### Renderer/UI
+SD-010 adds a deliberately separate presentation timing channel. `performance.now()` is used only outside `src/core/` to measure Canvas render passes and post-step UI refreshes. Per-category sample history is bounded to 120 records and exposed through `window.__sandimationsPerformance` for profiling/testing.
 
-Responsible for drawing, interaction, explanation, accessibility, responsive layout, and presentation-only choices such as grid/overlay visibility. It may interpolate or exaggerate visually between fixed simulation/evidence facts, but presentation state must never mutate or masquerade as simulation/scheduler state.
+These measurements are nondeterministic diagnostics. They are never deterministic inputs and never enter scenarios, share state, state hashes, scheduler decisions, trace records, or deterministic work metrics. See `docs/RELEASE_HARDENING.md` and `docs/VERIFY.md`.
 
-SD-005 Canvas rendering consumes `WorldPresentationViewModel`; it does not inspect scheduler algorithms. Parameter inputs are generated from registry definitions and route mutations back through `SimulationController`, showing queued values explicitly rather than treating reset-required/next-step changes as already applied. Keyboard controls call the same controller operations as visible buttons. Reduced-motion affects nonessential presentation animation only.
+## Static deployment
 
-### Chunk sleep/wake scheduler
+The production target is GitHub Pages under repository base `/sandimations/`. Vite receives that base explicitly for the Pages build. A dedicated Playwright config serves built assets from the same subpath before deployment. `.github/workflows/pages.yml` smoke-tests the built artifact before upload/deploy so deployment/base-path failures remain visible.
 
-`ChunkSleepWakeScheduler` lives in deterministic core state. It owns fixed chunk bounds, lifecycle state, quiet-frame counters, activity accumulation, and wake-neighborhood decisions. `SimulationRunner` asks it which chunks are evaluable, and `LogicalWorld.stepSandRegion()` performs cell work only for those regions.
+Public deployment verification is a release gate, not implied by a successful local/static-server smoke.
 
-Chunk state is included in the deterministic runner hash. The evidence backend exposes chunk bounds/state to presentation; `buildAppPresentationViewModel()` maps explicit sleeping/newly-woken facts into the generic SD-005 overlay vocabulary. Canvas draws chunk boundaries and overlays but contains no sleep/wake thresholds or propagation rules.
-
-The SD-006 implementation uses deterministic bottom-row-to-top-row chunk ordering. Because that groups cell updates differently from the baseline global scan, exact physical equivalence is not an architecture invariant for this teaching strategy. Comparison mode must measure rather than assume divergence.
-
-## Determinism contract
-
-For the same:
-
-- scenario definition;
-- seed;
-- ordered input events;
-- ordered parameter mutations;
-- runner commands;
-
-…the core must produce the same logical states, trace events, and metrics regardless of browser refresh rate, render cadence, OS locale, or browser locale.
-
-Use an explicit model-owned PRNG. No hidden `Math.random()` calls are allowed in deterministic core code. Scenario normalization/serialization must not introduce wall-clock timestamps, random identifiers, locale-dependent ordering, or browser state.
-
-Trace/metrics/backend/presentation reads are observational only. They must not become deterministic inputs or change future results.
-
-## Baseline / optimized comparison
-
-Comparison mode should instantiate independent runners from the same canonical scenario seed/input stream. Baseline and optimized implementations may use different scheduler strategies but must share comparable model contracts.
-
-Metrics must distinguish implementation work counters from wall-clock performance. Browser timing is useful for profiling but is not a deterministic teaching metric.
-
-## Snapshot and replay direction
-
-Initial releases need deterministic reset/replay, not arbitrary reverse execution. The runner API and state serialization should nevertheless permit later checkpoint rings or snapshot-backed rewind without reworking the simulation core.
-
-## Suggested source layout
+## Source dependency direction
 
 ```text
-src/
-  core/
-    evidence/
-    metrics/
-    model/
-    scheduler/
-    runner/
-    random/
-    parameters/
-    trace/
-    scenario/
-  adapters/
-    teaching-model/
-    comparison/
-    future-trace/
-    future-wasm/
-  presentation/
-    view-models/
-    overlays/
-    timeline/
-  ui/
-    controls/
-    inspectors/
-    app/
-  render/
-    canvas/
-  scenarios/
-tests/
-  unit/
-  determinism/
-  integration/
-  e2e/
+src/core/
+    ↓
+src/adapters/
+    ↓
+src/presentation/
+    ↓
+src/ui/
+    ↓
+src/main.ts
 ```
 
-The exact directory names may evolve, but the boundaries must remain recognizable.
+The static boundary check enforces the most important invariant: deterministic core cannot reach upward into browser/presentation concerns.
 
-## Initial technology baseline
+## Technology baseline
 
-Recommended starting point:
+- strict TypeScript;
+- Vite development/build;
+- Canvas 2D presentation;
+- Vitest deterministic/unit coverage;
+- Playwright Chromium browser and production-base-path smoke coverage;
+- GitHub Actions CI and Pages workflow.
 
-- TypeScript with strict type checking;
-- Vite for development/build;
-- Canvas 2D renderer initially;
-- Vitest for pure-core/unit/determinism tests;
-- Playwright for browser-level interaction and visual smoke coverage;
-- ESLint or an equivalent lightweight static check;
-- GitHub Actions for install/typecheck/lint/test/build and selected browser smoke tests.
-
-Dependencies should be justified by capability, not convenience. Keep the core framework-independent.
+Dependencies are justified by capability rather than framework convenience. The first release has no runtime package dependencies.
