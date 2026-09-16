@@ -60,6 +60,12 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function formatWorkDifference(value: number): string {
+  if (value > 0) return `${formatPercent(value)} fewer deterministic work units`;
+  if (value < 0) return `${formatPercent(-value)} more deterministic work units`;
+  return 'Same deterministic work units';
+}
+
 function setCanvasLabel(
   canvas: HTMLCanvasElement,
   role: string,
@@ -239,7 +245,12 @@ export function mountComparisonApp(
   metricsSection.className = 'comparison-metrics panel';
   const metricsHeading = document.createElement('h2');
   metricsHeading.textContent = 'Deterministic work comparison';
+  const metricsProvenance = document.createElement('p');
+  metricsProvenance.className = 'comparison-provenance';
+  metricsProvenance.dataset.testid = 'comparison-metrics-provenance';
   const table = document.createElement('table');
+  const caption = document.createElement('caption');
+  caption.textContent = 'Each metric column is bound to the provenance identified above.';
   const head = document.createElement('thead');
   head.innerHTML = '<tr><th>Metric</th><th>Baseline</th><th>Optimized</th></tr>';
   const body = document.createElement('tbody');
@@ -274,6 +285,16 @@ export function mountComparisonApp(
     'compare-baseline-woken-chunks',
     'compare-optimized-woken-chunks',
   );
+  const phaseCount = metricRow(
+    'Native phases / runner frame',
+    'compare-baseline-phase-count',
+    'compare-optimized-phase-count',
+  );
+  const nativeFrames = metricRow(
+    'Native runner frames completed',
+    'compare-baseline-native-frames',
+    'compare-optimized-native-frames',
+  );
   const phases = metricRow(
     'Scheduler ticks completed',
     'compare-baseline-phases',
@@ -292,10 +313,12 @@ export function mountComparisonApp(
     activeChunks.row,
     sleepingChunks.row,
     wokenChunks.row,
+    phaseCount.row,
+    nativeFrames.row,
     phases.row,
     work.row,
   );
-  table.append(head, body);
+  table.append(caption, head, body);
 
   const summaries = document.createElement('div');
   summaries.className = 'comparison-summary-grid';
@@ -306,7 +329,7 @@ export function mountComparisonApp(
   const metricId = document.createElement('code');
   metricId.dataset.testid = 'comparison-divergence-metric';
   summaries.innerHTML =
-    '<div><strong>Optimized / baseline work</strong></div><div><strong>Work reduction</strong></div><div><strong>Material divergence</strong></div><div><strong>Mismatched cells</strong></div>';
+    '<div><strong>Optimized / baseline work</strong></div><div><strong>Work difference</strong></div><div><strong>Material divergence</strong></div><div><strong>Mismatched cells</strong></div>';
   const summarySlots = summaries.querySelectorAll('div');
   summarySlots[0]?.append(document.createElement('br'), workRatio);
   summarySlots[1]?.append(document.createElement('br'), workReduction);
@@ -322,8 +345,8 @@ export function mountComparisonApp(
   caveat.className = 'comparison-caveat';
   caveat.dataset.testid = 'comparison-caveat';
   caveat.textContent =
-    'Work ratio compares deterministic operation counts only. The divergence metric is normalized cell-material Hamming distance: 0 means identical cell materials, 1 means every cell differs. It ignores displacement distance and does not establish physical correctness.';
-  metricsSection.append(metricsHeading, table, summaries, caveat);
+    'Work ratio compares deterministic operation counts only. The divergence metric is normalized cell-material Hamming distance: 0 means identical cell materials, 1 means every cell differs. It ignores displacement distance, includes unchanged boundary cells in its denominator, and does not establish physical correctness.';
+  metricsSection.append(metricsHeading, metricsProvenance, table, summaries, caveat);
 
   main.append(header, toolbar, worlds, metricsSection);
   root.replaceChildren(main);
@@ -351,6 +374,7 @@ export function mountComparisonApp(
 
     baselineWorld.provenance.textContent = `${comparison.baseline.provenance.backendId} · ${comparison.baseline.provenance.strategyId} · ${comparison.baseline.provenance.scenarioId}`;
     optimizedWorld.provenance.textContent = `${comparison.optimized.provenance.backendId} · ${comparison.optimized.provenance.strategyId} · ${comparison.optimized.provenance.scenarioId}`;
+    metricsProvenance.textContent = `Baseline metrics: ${comparison.baseline.provenance.backendId} / ${comparison.baseline.provenance.strategyId}. Optimized metrics: ${comparison.optimized.provenance.backendId} / ${comparison.optimized.provenance.strategyId}. Ratios and divergence compare these exact provenance-bound streams.`;
 
     examined.baseline.value = String(comparison.baseline.metrics.cells.examined);
     examined.optimized.value = String(comparison.optimized.metrics.cells.examined);
@@ -366,6 +390,10 @@ export function mountComparisonApp(
     sleepingChunks.optimized.value = String(comparison.optimized.metrics.chunks.sleeping);
     wokenChunks.baseline.value = String(comparison.baseline.metrics.chunks.woken);
     wokenChunks.optimized.value = String(comparison.optimized.metrics.chunks.woken);
+    phaseCount.baseline.value = String(baselineSimulation.phaseCount);
+    phaseCount.optimized.value = String(optimizedSimulation.phaseCount);
+    nativeFrames.baseline.value = String(baselineSimulation.frame);
+    nativeFrames.optimized.value = String(optimizedSimulation.frame);
     phases.baseline.value = String(comparison.baseline.metrics.phases.completed);
     phases.optimized.value = String(comparison.optimized.metrics.phases.completed);
     work.baseline.value = String(comparison.baseline.metrics.work.total);
@@ -378,7 +406,7 @@ export function mountComparisonApp(
     workReduction.value =
       comparison.workRatio.reductionFraction === null
         ? '—'
-        : `${formatPercent(comparison.workRatio.reductionFraction)} fewer deterministic work units`;
+        : formatWorkDifference(comparison.workRatio.reductionFraction);
     divergence.value = formatPercent(comparison.divergence.normalized);
     divergenceCells.value = `${comparison.divergence.mismatchedCells}/${comparison.divergence.totalCells}`;
     metricId.textContent = comparison.divergence.metricId;
