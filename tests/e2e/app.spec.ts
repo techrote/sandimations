@@ -185,6 +185,22 @@ test('phase stepping visibly advances the real sparse sampling scheduler', async
   );
 });
 
+test('does not label selected cells as evaluated when sand work is disabled', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('play-pause').click();
+  await page.getByTestId('reset').click();
+
+  const sandEnabled = page.getByTestId('parameter-input-simulation.sand.enabled');
+  await sandEnabled.uncheck();
+  await expect(page.getByTestId('parameter-current-simulation.sand.enabled')).toHaveText('Off');
+
+  await page.getByTestId('step-phase').click();
+  await expect(page.getByTestId('sampling-selected')).not.toHaveText('0');
+  await expect(page.getByTestId('metrics-examined')).toHaveText('0');
+  await expect(page.getByTestId('overlay-count-evaluated-now')).toHaveText('0');
+  await expect(page.getByTestId('overlay-count-active-not-selected')).not.toHaveText('0');
+});
+
 test('phased sampling phase count and pattern apply on reset', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('play-pause').click();

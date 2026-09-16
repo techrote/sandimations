@@ -63,7 +63,7 @@ Each executed phase emits:
 3. exact cell-level work evidence from the selected coordinate list;
 4. `phase-completed`.
 
-The exact evaluated set is the set of `cell-examined` records at that tick. A test requires the examined-record count to equal the scheduler's selected count.
+The exact evaluated set is the set of `cell-examined` records at that tick. When material work is enabled, tests require the examined-record count to equal the scheduler's selected count. Selection itself remains distinct evidence: if sand evaluation is disabled, phase selection and coverage still advance, but no cell is presented as evaluated unless a `cell-examined` record exists.
 
 Cumulative deterministic work metrics continue to use actual `cell-examined` records. They do not convert the selection ratio into a claimed wall-clock speedup.
 

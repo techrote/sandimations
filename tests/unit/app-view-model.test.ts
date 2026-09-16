@@ -68,6 +68,33 @@ describe('app presentation view model', () => {
     expect(view.world.latestEvidenceTick).toBe(sampling.lastExecutedTick);
   });
 
+  it('does not present scheduler selection as evaluation when material work is disabled', () => {
+    const registry = createCoreParameterRegistry();
+    const runner = new SimulationRunner(createPhasedSamplingFixtureScenario(), registry);
+    const controller = new SimulationController(runner);
+    const adapter = new PresentationEvidenceAdapterV1(new TeachingModelEvidenceBackendV1(runner));
+
+    controller.requestParameterMutation(CoreParameterId.sandEnabled, false);
+    controller.stepPhase();
+    const evidence = adapter.read();
+    const sampling = evidence.scheduler.sampling;
+    expect(sampling).not.toBeNull();
+    if (sampling == null) {
+      throw new Error('Expected phased sampling evidence.');
+    }
+
+    expect(sampling.selectedCellCount).toBeGreaterThan(0);
+    expect(
+      evidence.traceRecords.filter(
+        (record) => record.tick === sampling.lastExecutedTick && record.type === 'cell-examined',
+      ),
+    ).toHaveLength(0);
+
+    const view = buildAppPresentationViewModel(controller.getViewModel(), evidence, registry);
+    expect(view.world.overlays.filter((marker) => marker.kind === 'evaluated-now')).toHaveLength(0);
+    expect(view.metrics.cells.examined).toBe(0);
+  });
+
   it('derives current and pending parameter state from registry metadata and evidence', () => {
     const harness = createHarness();
 
