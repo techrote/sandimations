@@ -1,79 +1,63 @@
 # Sandimations RAG / Agent Context & Execution Plan
 
-This is the repository-native retrieval/context pack and execution ledger for the project. It is intended to let an implementation agent resume from repository state without relying on chat history.
+Repository-native continuation context for autonomous implementation. The relevant GitHub issue, `AGENTS.md`, this file, architecture/product/verification contracts, and current repository state are authoritative over chat history.
 
 ## Mission
 
-Build an interactive web application that makes CyberSand performance ideas intuitive through deterministic, inspectable simulations. The first high-value stories are chunk sleep/wake scheduling and phased sampling, with baseline-vs-optimized comparison, direct time manipulation, live parameter mutation, and trace-driven explanatory overlays.
+Build an interactive browser application that makes selected CyberSand performance ideas intuitive through deterministic, inspectable teaching simulations. Primary stories are chunk sleep/wake and phased sampling, with direct time manipulation, trace-driven overlays, baseline comparison, scenario/timeline tooling, and a replaceable evidence backend.
 
-## Plan review outcome
+## Non-negotiable architecture
 
-The initial concept was improved before publication in four material ways:
+- **Trace/model separation:** presentation consumes structured model/scheduler facts; it does not reproduce scheduler algorithms.
+- **Explicit time:** pause, playback rate, phase step, frame step, and N-frame step are runner/controller operations, never renderer tricks.
+- **Schema-driven parameters:** typed definitions own defaults, bounds/options, serialization, and mutation timing.
+- **Replaceable evidence backend:** the TypeScript teaching runner is not the permanent presentation dependency; future recorded CyberSand traces or C++/WASM must fit the evidence boundary.
+- **Visual expressiveness with factual provenance:** highlights, trails, and pulses may exaggerate true evidence, but may not invent scheduler decisions.
+- **Wall-clock isolation:** browser profiling remains separate from deterministic work counters, state, and replay.
 
-1. **Trace/model separation is mandatory.** The renderer must visualize structured model/scheduler facts rather than duplicate optimization logic.
-2. **Time is an explicit subsystem.** Pause, variable rate, one-phase stepping, one-frame stepping, and N-frame stepping are runner commands, not renderer tricks.
-3. **Parameters are schema-driven.** Controls are generated/bound from typed definitions carrying mutation semantics, so later illustrative controls do not require state-model rewrites.
-4. **Backend replacement is designed in.** The first deterministic teaching model is an adapter, not the application core, leaving a clean path to captured CyberSand traces or C++/WASM.
+## Release milestones
 
-Two execution clarifications were added before implementation began:
+### M0 — repository substrate — complete
 
-- **Early time controls are required.** SD-002 must deliver a minimal but genuinely functional speed slider and phase/frame stepping controls as soon as the deterministic runner exists; SD-005 later refines those same controls rather than delaying them.
-- **Visual expressiveness is encouraged.** Trace-backed truthfulness constrains the scheduler facts being represented, not the aesthetics. The visualization may exaggerate, trail, pulse, separate, magnify, regroup, or otherwise transform those facts to make phased sampling intuitive.
+SD-001 established TypeScript/Vite, tests, CI, deterministic-core boundary checks, browser smoke coverage, and repository documentation conventions.
 
-These are architecture/product requirements, not optional refinements.
+### M1 — deterministic substrate and early controls — complete
 
-## Release shape
+SD-002 added the seeded model, explicit runner/clock, deterministic reset/replay, and functional speed/phase/frame controls. SD-003 added typed parameter/scenario contracts and deterministic scripted events. SD-004 added versioned trace/metrics/provenance, bounded evidence retention, and replaceable backend/presentation evidence interfaces.
 
-### M0 — Repository substrate — complete
+### M2 — explanatory schedulers — complete
 
-SD-001 established the toolchain, strict TypeScript structure, deterministic-core boundaries, CI, browser smoke harness, and documentation conventions.
+SD-005 built the generic evidence-driven presentation shell. SD-006 added real chunk sleep/wake work avoidance and lifecycle evidence. SD-007 added real sparse phased sampling, scheduler-owned selection/coverage evidence, and a final repair keeping `evaluated-now` overlays exclusively trace-backed.
 
-### M1 — Deterministic explanatory substrate + early interactive controls — complete
+### M3 — comparison and presentation tooling — complete through SD-009
 
-SD-002 established the seeded teaching model, explicit runner/clock, phase and frame stepping, deterministic hashes/reset/replay, and **working browser speed slider and stepping controls**. SD-003 added the typed parameter registry, deterministic mutation timing, versioned/canonical scenario serialization, scripted event replay, and fixture scenarios. SD-004 completed the substrate with versioned structured traces, deterministic trace-derived metrics, provenance, bounded evidence retention, and replaceable backend/presentation evidence contracts.
+SD-008 added independent baseline/optimized runners, deterministic work comparison, explicit material divergence, and split/overlay views. SD-009 added the scenario library, bounded trace-backed timeline, versioned shareable URL state, and presentation/demo mode.
 
-### M2 — First explanatory app — complete
+### M3 release hardening — SD-010 in progress, externally blocked
 
-SD-005 completed the generic evidence-driven application shell. SD-006 added the first real optimization demo: deterministic chunk sleep/wake state, actual avoided cell evaluation while regions sleep, local/cross-chunk wake causes, registered scheduler parameters, chunk metrics, and trace-backed visualization. SD-007 completed the signature phased-sampling scheduler with real sparse per-phase evaluation, trace-backed selection/coverage evidence, registered phase controls, and phase-by-phase visual explanation.
+SD-010 has implemented accessibility/responsive hardening, bounded scenario input, browser-only presentation profiling, security-audit gating, GitHub Pages base-path build/smoke checks, documentation reconciliation, and a Pages deployment workflow. A measured Canvas batching experiment failed to demonstrate an improvement and was reverted.
 
-### M3 — Comparative and presentation tooling — in progress
+The remaining release gate is external repository configuration: GitHub Pages is not enabled. `actions/configure-pages` cannot create the Pages site with the workflow token; `enablement: true` fails with `403 Resource not accessible by integration`. Per SD-010's explicit stop condition, issue #10 and PR #22 remain open until a repository administrator enables Pages with GitHub Actions as the source and the public `/sandimations/` deployment is verified. See `docs/RELEASE_HARDENING.md`.
 
-SD-008 establishes deterministic baseline-vs-optimized orchestration, provenance-bound work/divergence metrics, and split/overlay comparison views. SD-009 follows with timeline, shareable state, and presentation tooling; SD-010 then hardens accessibility, browser behavior, performance, and deployment.
+### M4 — fidelity bridge
 
-### M4 — Fidelity bridge
-
-Versioned external trace ingestion and/or C++/WASM adapter proof so the explanatory UI can be driven by real CyberSand evidence later without architectural replacement.
+SD-011 proves external trace ingestion and/or a C++/WASM adapter can drive the existing evidence/presentation contract without architectural replacement. It begins only after SD-010 is genuinely complete.
 
 ## Work graph
 
-Stable work IDs and their GitHub issues form the execution graph.
-
-| Work ID | Issue | Scope | Depends on | Parallelism |
-|---|---:|---|---|---|
-| SD-001 | [#1](https://github.com/techrote/sandimations/issues/1) | Bootstrap TypeScript/Vite/test/CI substrate | none | complete |
-| SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | Deterministic world, runner, **early functional speed/step control vertical slice** | SD-001 | complete |
-| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | Typed parameter registry, scenario schema, serialization | SD-001 | complete |
-| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | Trace protocol, metrics, backend/presentation adapter contracts | SD-001; consumes SD-002/003 | complete |
-| SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | UI shell, Canvas renderer, legend, inspectors, **refinement of SD-002 time controls** | SD-002, SD-003, SD-004 | complete |
-| SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | Chunk sleep/wake scheduler teaching model + demo | SD-002, SD-004; integrates with SD-003/005 | complete |
-| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | Phased-sampling teaching model + **primary visual/phase-step explanation** | SD-002, SD-004; integrates with SD-003/005 | complete |
-| SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | Baseline-vs-optimized comparison and divergence/work instrumentation | SD-006, SD-007 | complete |
-| SD-009 | [#9](https://github.com/techrote/sandimations/issues/9) | Scenario presets, timeline, shareable URL state, presentation mode | SD-003, SD-005, SD-006, SD-007; comparison scenarios may use SD-008 | after stable scenario/UI contracts |
-| SD-010 | [#10](https://github.com/techrote/sandimations/issues/10) | Accessibility, performance, browser hardening, static deployment | SD-005 through SD-009 | final release hardening |
-| SD-011 | [#11](https://github.com/techrote/sandimations/issues/11) | External trace / future C++-WASM fidelity bridge proof | SD-004, SD-008 | may follow first public release |
-
-## Concurrency rules
-
-- SD-001 through SD-005 are complete substrate/presentation-foundation work.
-- SD-005's generic app/view-model contract is now the presentation path: later scheduler work must supply structured evidence rather than add algorithm logic to Canvas/DOM code.
-- SD-006 is complete and demonstrates the pattern later schedulers must follow: scheduler-owned state, real work avoidance, SD-004 evidence, and generic SD-005 presentation.
-- SD-007 is complete; phased sampling uses the common evidence/overlay and stepping contracts rather than a competing state or stepping path.
-- SD-005 must **adopt/refine the already-working SD-002 controls**, not replace their simulation semantics or defer their functionality.
-- SD-006 emits chunk activate/sleep/wake facts through the SD-004 event vocabulary; later work must preserve this common evidence channel.
-- SD-007 exposes real per-phase scheduler selections through the SD-004 evidence path; comparison and presentation work must consume those facts rather than synthesize sampling masks.
-- SD-008 compares independent full-scan-reference and optimized runners through the stable SD-004/006/007 evidence contracts. It synchronizes deterministic comparison ticks without sharing mutable simulation state and keeps deterministic work counters distinct from wall-clock timing.
-- SD-009 must not become a second state-management system; URL/preset state serializes canonical scenario/parameter/view models. Its timeline must respect explicit bounded trace retention rather than assuming an infinite live event log.
-- SD-010 is hardening, not a feature bucket; material new features discovered there should become explicit follow-ups.
+| Work ID | Issue | Scope | Depends on | Status |
+| --- | ---: | --- | --- | --- |
+| SD-001 | #1 | Bootstrap TypeScript/Vite/test/CI substrate | none | complete |
+| SD-002 | #2 | Deterministic world, runner, early speed/step controls | SD-001 | complete |
+| SD-003 | #3 | Typed parameter registry and scenario schema | SD-001 | complete |
+| SD-004 | #4 | Trace protocol, metrics, backend/presentation evidence | SD-001 + SD-002/003 | complete |
+| SD-005 | #5 | Evidence-driven UI shell, Canvas, controls, inspectors | SD-002/003/004 | complete |
+| SD-006 | #6 | Chunk sleep/wake teaching scheduler | SD-002/004 + UI integration | complete |
+| SD-007 | #7 | Sparse phased-sampling teaching scheduler | SD-002/004 + UI integration | complete |
+| SD-008 | #8 | Baseline/optimized comparison and divergence | SD-006/007 | complete |
+| SD-009 | #9 | Scenario library, timeline, share state, presentation mode | SD-003/005/006/007/008 | complete |
+| SD-010 | #10 | Accessibility, performance, browser, static-deployment hardening | SD-005 through SD-009 | in progress; Pages enablement blocker |
+| SD-011 | #11 | External trace / C++-WASM fidelity bridge proof | SD-004/008 + release foundation | queued after SD-010 |
 
 ## Global acceptance invariants
 
@@ -82,228 +66,90 @@ Every implementation must preserve:
 - deterministic core independent of render cadence and wall time;
 - explicit seeded PRNG and no hidden core randomness;
 - physical simulation state distinct from scheduler state;
-- scheduler/model facts distinct from rendering logic;
-- phase distinct from logical frame;
-- baseline/optimized provenance on comparison metrics;
-- typed parameter mutation semantics (`live`, `next-step`, `reset-required`);
-- reproducible scenario reset/replay;
-- versioned, validated, canonical scenario serialization with locale-independent deterministic ordering;
-- versioned trace/metrics contracts with backend/strategy/scenario provenance;
-- trace/metrics/backend/presentation reads are observational and cannot perturb deterministic execution;
-- deterministic work counters remain distinct from wall-clock performance profiling;
-- live trace retention is explicitly bounded/self-describing rather than an accidental unbounded log;
-- honest labeling of simplified teaching behavior versus verified real CyberSand behavior;
-- **visual transformations may amplify real scheduler facts but may not invent scheduler decisions**;
-- keyboard-usable controls and non-color-only critical state distinctions;
-- automated checks that grow with capability and are not silently weakened.
+- scheduler/model facts distinct from presentation logic;
+- scheduler phase distinct from logical frame;
+- typed `live`, `next-step`, and `reset-required` parameter semantics;
+- reproducible scenario reset/replay and canonical serialization;
+- versioned trace/metrics/provenance contracts;
+- observation/backend reads cannot perturb future execution;
+- baseline/optimized runners remain independent and provenance-bound;
+- deterministic work counters remain distinct from wall-clock profiling;
+- retained histories and release inputs are explicitly bounded;
+- simplified teaching behavior is never mislabeled as exact CyberSand C++ behavior;
+- critical scheduler distinctions are keyboard-accessible and not color-only;
+- automated verification grows with capability and is not silently weakened.
 
-## Earliest interactive vertical slice
+## Current released behavior through SD-009
 
-SD-002 delivers a human-usable early vertical slice before the mature presentation shell exists. A viewer can:
+### Time and controls
 
-- see a simple running sand/world view;
-- pause/play it;
-- move a working speed slider from deep slow motion through fast-forward;
-- easily identify/return to `1×`;
-- advance one scheduler phase/tick;
-- advance one logical frame;
-- advance ten frames;
-- see frame/phase/tick counters and the deterministic state hash change;
-- reset deterministically.
+The nonlinear speed slider devotes half its travel to `1/32×` through `1×` and reaches `16×` above that. Core controls expose pause/play, exact phase step, exact frame step, configurable N-frame step, and deterministic reset. Playback rate affects browser scheduling, never fixed-step physics.
 
-The implemented slider is deliberately non-linear: half of its travel covers `1/32×` through `1×`, while the upper half reaches `16×`. The runner receives explicit playback-rate values and fixed-step physics remain unchanged.
+### Parameters and scenarios
 
-The default scenario intentionally uses one phase per frame. SD-003 also provides a four-phase clock fixture, but it explicitly does **not** select sparse cell subsets. This establishes the real phase-step/scenario contracts without pretending phased sampling is already implemented; SD-007 later supplies meaningful per-phase selection through the same controls.
+The registry covers sand enable/tie-break/seed variation, chunk size/sleep/activity/wake settings, and phased-sampling phase count/pattern. Scenario schema version `1` validates and canonicalizes model/world, scheduler configuration, parameter values, ordered deterministic events, and separate presentation defaults.
 
-## SD-003 configuration substrate
+SD-010 adds release resource ceilings: 512 cells per axis, 65,536 total cells, and 10,000 scripted events. Oversized input fails closed.
 
-SD-003 establishes three concrete parameter timings without pre-implementing later optimization features:
+### Structured evidence
 
-- live sand-motion enable/disable;
-- next-step diagonal tie-break selection;
-- reset-required deterministic seed variation.
+Trace protocol version `1` records deterministic sequence, frame, phase, tick, provenance, cell-work facts, phase selections, and chunk lifecycle/wake facts. Metrics schema version `1` exposes deterministic teaching work/state from the same execution path. Live trace retention is a bounded 16,384-record ring with explicit truncation metadata; presentation prefers bounded recent-evidence reads.
 
-Scenario schema version `1` separates simulation/world data, scheduler clock configuration, parameter values, ordered deterministic input/parameter events, and non-authoritative presentation defaults. Serialization is validated and canonical. Reset reconstructs runtime live/next-step state from the scenario baseline while retaining explicitly applied reset-required configuration, so scripted event histories reproduce from a stable starting state.
+### Chunk sleep/wake
 
-Prepared fixtures include a localized disturbance for later sleep/wake work and a four-phase clock scene for later phased-sampling work.
+`chunk-sleep-wake-v1` owns explicit active, pending-sleep, sleeping, and newly-woken chunk state. Sleeping chunks perform no cell evaluation. Local/cross-chunk wake causes are structured evidence. Scan ordering differs from baseline, so physical identity is measured rather than assumed.
 
-Windows convenience entry points are also available: `Setup.cmd`, `Run.cmd`, and `Verify.cmd`. They remain thin wrappers over the canonical npm workflow. A one-off Windows Server 2025 / Node 24 CI smoke during SD-003 verified setup and repository verification under `cmd.exe`, plus the `Run.cmd` canonical launch path. Repository text is normalized to LF except `.cmd`, which is forced to CRLF.
+### Phased sampling
 
-## SD-004 structured evidence substrate
+`phased-sampling-v1` assigns coordinates deterministically to phase buckets and evaluates only the selected bucket each scheduler tick. Selection and coverage presentation derive from scheduler/trace evidence, not geometry reconstruction in Canvas.
 
-SD-004 establishes the factual channel that later visualizations must consume.
+### Comparison
 
-Trace protocol version `1` records deterministic `sequence`, `frame`, `phase`, and `tick` context plus backend/strategy/scenario provenance. The current teaching model emits phase boundaries and exact cell examined/moved/skipped/blocked facts directly from the real sand scan. Chunk activated/slept/woken events are already part of the protocol so SD-006 can add chunk semantics without changing the presentation contract; no chunk facts are fabricated before that scheduler exists.
+SD-008 creates independent full-scan reference and optimized runners from equivalent canonical non-scheduler scenario data. Deterministic work ratios use the SD-004 work-unit definition. Physical difference uses `cell-material-hamming-v1`; zero divergence at one instant is never treated as proof of semantic equivalence.
 
-Metrics schema version `1` is derived from those trace records. It exposes cell-work counters, chunk current-state/transition counters, phase progress, and deterministic explanatory work totals. These are explicitly not wall-clock timing or claims that all work units cost the same CPU time.
+### Scenario experience
 
-The evidence boundary is:
+SD-009 composes scenario selection, single/comparison runtimes, bounded trace-backed timeline inspection, versioned shareable URL state, and presentation/demo scripting. Timeline selection is observational and never rewinds physics. Share state replays canonical scenario/parameters/tick rather than serializing arbitrary DOM/runtime state.
 
-```text
-model / scheduler / runner
-        ↓
-versioned trace + deterministic metrics + provenance
-        ↓
-EvidenceBackendV1
-        ↓
-PresentationEvidenceAdapterV1
-        ↓
-future renderer / inspector / timeline
-```
+## SD-010 hardening state
 
-The live TypeScript implementation uses `TeachingModelEvidenceBackendV1`. Tests prove the same presentation adapter can consume a mock immutable backend snapshot, preserving the path for recorded CyberSand traces and C++/WASM later.
+Implemented on PR #22:
 
-Live in-memory trace history is a `16,384`-record ring buffer. Snapshots expose `firstSequence`, `nextSequence`, and `droppedRecords`; cumulative deterministic metrics continue across trace eviction. This bounds long-running memory use while making any retained-history gap explicit.
+- representative responsive checks at 360, 390, 768, and 1440 pixels;
+- keyboard/focus/accessible-name coverage for scenario, timeline, and core controls;
+- redundant non-color scheduler-state cues and reduced-motion verification;
+- comparison contrast and narrow-layout containment corrections;
+- bounded 120-sample `world-canvas`/`playback-ui` diagnostic channel;
+- representative logged browser performance profiles;
+- scenario dimension/cell/event ceilings;
+- clean dependency audit gate with `npm audit --audit-level=high`;
+- GitHub Pages production base `/sandimations/` build plus dedicated Playwright smoke;
+- Pages deployment workflow with failures surfaced;
+- README, architecture, product, scenario, verification, and release-evidence reconciliation.
 
-Human-auditable golden fixtures verify event ordering and movement evidence. Additional tests verify provenance, metrics consistency, chunk vocabulary, deterministic reset/replay, and identical state/trace/metrics despite heavy extra presentation/backend reads between simulation steps.
+Performance evidence is in `docs/RELEASE_HARDENING.md`. Batching Canvas grid rectangles into one path regressed the representative hosted-runner profiles, so the experiment was reverted rather than retained as speculative optimization.
 
-See `docs/TRACE_PROTOCOL.md` for the complete evidence/versioning/retention contract.
+## Remaining blocker procedure
 
-## SD-005 presentation shell
+A repository administrator must enable GitHub Pages for `techrote/sandimations` and select **GitHub Actions** as the build/deployment source. Then:
 
-SD-005 turns the earlier functional control slice into a reusable evidence-driven UI while preserving runner semantics.
+1. rerun the Pages workflow on PR #22, or trigger it with a branch commit;
+2. require its build/base-path smoke, configure/upload, and deploy jobs to pass;
+3. verify `https://techrote.github.io/sandimations/` loads the released scenario experience;
+4. confirm final PR CI is green;
+5. remove the temporary feature-branch Pages trigger before merge so routine deployment follows `main`;
+6. make PR #22 ready and merge only with every required check green;
+7. verify the merge and post-merge CI/Pages deployment on `main`, then close #10;
+8. only then advance to SD-011.
 
-The shell includes:
+## Key risks
 
-- the existing nonlinear deep-slow-to-fast playback control with direct `1×` return;
-- pause/play, exact phase step, exact frame step, configurable N-frame step, and deterministic reset;
-- keyboard equivalents (`Space`, `.`, `F`, `R`) that call the same controller methods;
-- state/hash, deterministic work, trace-retention, and provenance inspectors;
-- parameter controls generated from registry metadata, including explicit current/pending display for `next-step` and `reset-required` values;
-- a five-state overlay/legend vocabulary with redundant shape/pattern cues: evaluated-now, active-other-phase, sleeping/inactive, newly-woken, and blocked/rejected;
-- recent evidence summaries and presentation-only grid/overlay toggles;
-- responsive narrow/desktop layouts and `prefers-reduced-motion` handling.
+- **R1 — presentation drift:** mitigate with evidence-only overlay/timeline contracts and tests.
+- **R2 — timing conflation:** wall-clock diagnostics remain outside deterministic metrics/state.
+- **R3 — unbounded sessions:** trace, timeline, diagnostic, replay, and scenario-input bounds are explicit.
+- **R4 — repository-subpath deployment:** build and smoke under exact `/sandimations/` base plus mandatory public verification.
+- **R5 — future backend rewrite pressure:** preserve `EvidenceBackendV1` and the presentation-adapter seam.
 
-The current full-scan backend emits evaluated and blocked cell facts, so those are the states currently visible on the world. The other overlay categories are deliberately dormant until SD-006/007 emit corresponding evidence. UI code may not synthesize those states from geometry, color, or expected algorithm behavior.
+## Resume rule
 
-For live refresh, `TeachingModelEvidenceBackendV1` exposes an additive bounded recent-trace read and the presentation adapter defaults to the newest 512 records. This resolves R10 without changing the canonical full trace/export contract or cumulative metrics.
-
-## SD-006 chunk sleep/wake scheduler
-
-SD-006 introduces strategy `chunk-sleep-wake-v1` as an explicitly labelled teaching model. A fixed chunk partition owns `active`, `pending-sleep`, `sleeping`, and `newly-woken` lifecycle states. Quiet-frame delay, activity threshold, wake radius, and reset-required chunk size are registered SD-003 parameters.
-
-Sleeping chunks are excluded from cell evaluation entirely, so reduced `cells.examined` is genuine deterministic work avoidance. Local deterministic inputs wake a bounded neighborhood and cross-chunk material motion can propagate wake state. `chunk-woken` records carry optional cause-cell/cause-chunk evidence. Scheduler state is included in the deterministic hash and is reproduced by reset/replay tests.
-
-The live scenario `sd-006-chunk-sleep-wake` settles chunks, applies a scripted disturbance at tick 18 / cell `(24,3)`, exposes awake/sleeping/woken counters, then demonstrates regions returning toward sleep. Canvas chunk boundaries and cell overlays come from backend/presentation state; the renderer does not decide lifecycle state.
-
-Chunk-scoped evaluation changes update ordering relative to the baseline global scan, so physical identity is **not** claimed. SD-008 measures that divergence explicitly rather than asserting physical identity. See `docs/CHUNK_SLEEP_WAKE.md` for the full teaching-model contract and fidelity caveat.
-
-## SD-007 phased sampling scheduler
-
-SD-007 introduces strategy `phased-sampling-v1` as a real sparse-evaluation teaching scheduler. Cells are assigned deterministically to phases, only the current phase is evaluated on each scheduler tick, and selection/coverage evidence is emitted through the SD-004 trace path. The presentation therefore shows real scheduler decisions rather than a visual-only sampling mask. The final SD-007 repair also made `evaluated-now` overlays exclusively trace-backed when material evaluation is disabled.
-
-## SD-008 deterministic comparison
-
-SD-008 runs independent baseline and optimized `SimulationRunner` instances from equivalent canonical non-scheduler scenario data. One `phase-clock-v1` full scan is executed for every optimized comparison tick, preserving ordered tick-based inputs/events while providing an auditable work reference for chunk sleep/wake and phased sampling. No model, PRNG, parameter-store, scheduler, trace, or metrics state is shared between sides.
-
-Comparison metrics retain backend/strategy/scenario provenance. Deterministic work ratios use the existing SD-004 work-unit definition and are explicitly not wall-clock speed measurements. Physical difference is measured by the defined `cell-material-hamming-v1` metric rather than inferred from rendered pixels. Split and overlay views reuse SD-005 presentation/view-model and Canvas contracts. See `docs/COMPARISON.md` for clock semantics, formulas, limitations, scenarios, and verification requirements.
-
-## Initial UX target
-
-The mature default app should make the following flow possible without reading documentation:
-
-1. load a visible moving sand scenario;
-2. pause it;
-3. slow it substantially;
-4. advance one scheduler phase at a time;
-5. see which cells were evaluated now, active-but-not-selected, sleeping, newly woken, or blocked;
-6. advance a complete frame and understand how phases compose;
-7. switch to chunk sleep/wake and disturb a settled area;
-8. see wake propagation and work counters respond;
-9. adjust an illustrative parameter and see its declared application semantics;
-10. compare a baseline full-scan runner against an optimized runner from the same seed/input stream.
-
-For phased sampling specifically, the intended experience is **show first, explain second**: animation/highlighting/direct stepping should carry most of the explanation, while labels, prose, counters, and mathematics verify or deepen what the viewer can already see.
-
-## Measurement strategy
-
-Primary explanatory metrics are deterministic work counters, not noisy browser timing:
-
-- cells examined / moved / skipped / blocked;
-- chunks active / sleeping / activated / slept / woken;
-- phase start/completion progress;
-- deterministic work units and later work ratio relative to baseline;
-- deterministic state divergence where defined.
-
-The current v1 work total is deliberately simple: cell evaluations plus scheduler transitions. It is a reproducible teaching metric, not a CPU-cycle model. Browser CPU/frame timings may be added as secondary profiling information with environment caveats and must remain separate from deterministic metrics.
-
-## Technical baseline
-
-Preferred first implementation unless an issue substantiates a better choice:
-
-- TypeScript, strict mode;
-- Vite;
-- framework-light UI or a small UI library only if it materially reduces state/interaction complexity;
-- Canvas 2D first;
-- Vitest;
-- Playwright;
-- GitHub Actions;
-- static-host-friendly production output.
-
-Do not introduce WebGL/WebGPU or a large rendering framework merely for visual novelty. Upgrade only when profiling or explanatory needs justify it.
-
-## Risk register
-
-### R1 — Teaching model drifts from CyberSand
-
-Mitigation: label conceptual behavior clearly; structure adapters so real traces/core can replace the model; document algorithm provenance.
-
-### R2 — UI becomes the simulation engine
-
-Mitigation: core tests run without DOM; runner owns advancement; presentation consumes versioned evidence; renderer only consumes snapshots/view models/events.
-
-### R3 — Variable playback changes physics semantics
-
-Mitigation: playback rate changes scheduling of fixed logical steps, not the fixed-step rules themselves. SD-002 includes direct tests that different playback rates yield the same fixed-step state sequence.
-
-### R4 — Phase visualization conflates `not sampled` with `asleep`
-
-Mitigation: distinct future scheduler state, explicit event vocabulary, legend/tests, and redundant visual encoding. SD-004 gives presentation a structured evidence channel so it need not guess from pixels.
-
-### R5 — Parameter experimentation breaks replay
-
-Mitigation: definitions declare mutation timing; pending mutations are deterministic state; canonical scenario events are ordered; reset clears runtime live/next-step mutations back to scenario baseline while retaining explicit reset-required configuration; reset/replay is directly test-covered.
-
-### R6 — Comparison makes unsupported equivalence claims
-
-Mitigation: SD-008 defines cell-material Hamming divergence and deterministic work ratios in code and documentation, preserves both sides' provenance, and avoids asserting physical identity. SD-004 metrics explicitly distinguish deterministic work evidence from wall-clock speed.
-
-### R7 — Feature creep into a full sand engine
-
-Mitigation: keep material physics deliberately sufficient for explanation; prioritize scheduler visibility and interaction over realism.
-
-### R8 — “Trace-backed” is misread as “visually literal”
-
-Mitigation: product/issue contracts explicitly encourage aesthetic exaggeration while requiring the underlying sampled/sleeping/blocked classifications to come from real model/scheduler state.
-
-### R9 — Cell-level tracing becomes an accidental unbounded event database
-
-Mitigation: SD-004 uses bounded ring retention with explicit sequence/truncation metadata while metrics remain cumulative. SD-009 timeline/history work must choose deliberate retention/replay/checkpoint behavior rather than assuming infinite live history.
-
-### R10 — Frequent evidence reads become presentation overhead
-
-Mitigation: correctness tests prove reads are side-effect free. SD-005 added a bounded recent-evidence presentation read (512 records by default) so live refresh does not clone/process the full retained ring; the canonical full trace contract remains available for explicit history/export use.
-
-## Agent execution protocol
-
-Each implementation issue contains an executable prompt. Agents must also read `AGENTS.md`, this file, `docs/ARCHITECTURE.md`, `docs/PRODUCT.md`, and `docs/VERIFY.md` as applicable.
-
-For every issue: implement completely, test, reconcile docs, open a focused PR, repair attributable CI failures, merge only after required automated checks pass, verify the merge on `main`, and close the issue only when acceptance criteria are truly met.
-
-## Execution ledger
-
-| Work ID | GitHub issue | State | Notes |
-|---|---:|---|---|
-| SD-001 | [#1](https://github.com/techrote/sandimations/issues/1) | completed | Merged via PR #12; strict webapp/test/CI substrate |
-| SD-002 | [#2](https://github.com/techrote/sandimations/issues/2) | completed | PR #13; deterministic world/runner + early functional time controls |
-| SD-003 | [#3](https://github.com/techrote/sandimations/issues/3) | completed | PR #14; typed parameters, canonical scenarios/events, Windows shortcuts |
-| SD-004 | [#4](https://github.com/techrote/sandimations/issues/4) | completed | PR #15; versioned traces/metrics/provenance + bounded evidence backend seam |
-| SD-005 | [#5](https://github.com/techrote/sandimations/issues/5) | completed | PR #16; evidence-driven responsive shell, registry controls, overlays/inspectors, refined time controls |
-| SD-006 | [#6](https://github.com/techrote/sandimations/issues/6) | completed | PR #17; real chunk dormancy/wake teaching scheduler, parameters, trace causes, metrics and visualization |
-| SD-007 | [#7](https://github.com/techrote/sandimations/issues/7) | completed | PR #18 plus #19 visual-truthfulness repair; real phased selection/evaluation and phase explanation |
-| SD-008 | [#8](https://github.com/techrote/sandimations/issues/8) | completed | PR #20; independent full-scan-reference comparisons, provenance-bound work/divergence metrics, split/overlay UI |
-| SD-009 | [#9](https://github.com/techrote/sandimations/issues/9) | planned | Presets/timeline/share |
-| SD-010 | [#10](https://github.com/techrote/sandimations/issues/10) | planned | Hardening/deploy |
-| SD-011 | [#11](https://github.com/techrote/sandimations/issues/11) | planned | Fidelity bridge |
-
-Update this ledger when material dependency/status changes. Do not use it as a substitute for issue-specific acceptance criteria.
+If SD-010 is still open, inspect #10, PR #22, current CI, and Pages configuration first. Do not work around the public-deployment stop condition by merging unverified code. Once #10 is genuinely complete, SD-011 becomes the highest-priority dependency-ready issue.

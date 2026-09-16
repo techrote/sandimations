@@ -1,3 +1,4 @@
+import { recordPresentationTiming } from '../presentation/performance-monitor';
 import type { SimulationController } from '../presentation/simulation-controller';
 
 const BASE_FRAMES_PER_SECOND = 12;
@@ -30,7 +31,9 @@ export function startPlaybackDriver(
         for (let index = 0; index < phases; index += 1) {
           controller.advancePlaybackPhase();
         }
+        const startedAt = performance.now();
         onAdvance();
+        recordPresentationTiming('playback-ui', performance.now() - startedAt, phases);
       }
     } else {
       accumulator = 0;

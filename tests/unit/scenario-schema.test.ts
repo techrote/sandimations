@@ -10,7 +10,12 @@ import {
   normalizeScenario,
   serializeScenario,
 } from '../../src/core/scenario/scenario';
-import { ScenarioValidationError } from '../../src/core/scenario/schema';
+import {
+  MAX_SCENARIO_CELLS,
+  MAX_SCENARIO_EVENTS,
+  MAX_SCENARIO_WORLD_DIMENSION,
+  ScenarioValidationError,
+} from '../../src/core/scenario/schema';
 
 function plainDefault(): Record<string, unknown> {
   return JSON.parse(serializeScenario(createDefaultScenario())) as Record<string, unknown>;
@@ -87,6 +92,30 @@ describe('versioned scenario schema', () => {
     const invalidStrategy = plainDefault();
     invalidStrategy.scheduler = { strategy: 'mystery-v1', phaseCount: 1 };
     expect(() => normalizeScenario(invalidStrategy)).toThrow(/scheduler.strategy/i);
+  });
+
+  it('rejects scenarios that exceed production resource bounds before expensive processing', () => {
+    const tooWide = plainDefault();
+    tooWide.world = {
+      width: MAX_SCENARIO_WORLD_DIMENSION + 1,
+      height: 2,
+      cells: [],
+    };
+    expect(() => normalizeScenario(tooWide)).toThrow(/world.width/i);
+
+    const tooManyCells = plainDefault();
+    const width = MAX_SCENARIO_WORLD_DIMENSION;
+    const height = Math.floor(MAX_SCENARIO_CELLS / width) + 1;
+    tooManyCells.world = {
+      width,
+      height,
+      cells: Array.from({ length: width * height }, () => Material.Empty),
+    };
+    expect(() => normalizeScenario(tooManyCells)).toThrow(/maximum supported scenario size/i);
+
+    const tooManyEvents = plainDefault();
+    tooManyEvents.events = Array.from({ length: MAX_SCENARIO_EVENTS + 1 }, () => null);
+    expect(() => normalizeScenario(tooManyEvents)).toThrow(/maximum supported event count/i);
   });
 
   it('rejects ambiguous event ordering and scripted reset-required mutations', () => {

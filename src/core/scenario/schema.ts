@@ -6,6 +6,9 @@ import type { RunnerInput } from '../runner/input';
 import { canonicalJsonStringify } from './canonical-json';
 
 export const SCENARIO_SCHEMA_VERSION = 1 as const;
+export const MAX_SCENARIO_WORLD_DIMENSION = 512;
+export const MAX_SCENARIO_CELLS = 65_536;
+export const MAX_SCENARIO_EVENTS = 10_000;
 
 export type ScenarioSchedulerStrategyV1 =
   'phase-clock-v1' | 'chunk-sleep-wake-v1' | 'phased-sampling-v1';
@@ -88,10 +91,22 @@ function requireInteger(value: unknown, path: string, minimum: number, maximum: 
 
 function normalizeWorld(value: unknown): WorldSnapshot {
   const source = asRecord(value, '$.world');
-  const width = requireInteger(source.width, '$.world.width', 3, 4096);
-  const height = requireInteger(source.height, '$.world.height', 2, 4096);
+  const width = requireInteger(source.width, '$.world.width', 3, MAX_SCENARIO_WORLD_DIMENSION);
+  const height = requireInteger(source.height, '$.world.height', 2, MAX_SCENARIO_WORLD_DIMENSION);
   if (!Array.isArray(source.cells)) {
     throw new ScenarioValidationError('$.world.cells must be an array.');
+  }
+
+  const expectedCellCount = width * height;
+  if (expectedCellCount > MAX_SCENARIO_CELLS) {
+    throw new ScenarioValidationError(
+      `$.world contains ${expectedCellCount} cells; maximum supported scenario size is ${MAX_SCENARIO_CELLS}.`,
+    );
+  }
+  if (source.cells.length !== expectedCellCount) {
+    throw new ScenarioValidationError(
+      `$.world.cells must contain exactly ${expectedCellCount} entries for ${width}x${height}.`,
+    );
   }
 
   const cells: Material[] = source.cells.map((entry, index) => {
@@ -168,6 +183,11 @@ function normalizeEvents(
   }
   if (!Array.isArray(value)) {
     throw new ScenarioValidationError('$.events must be an array.');
+  }
+  if (value.length > MAX_SCENARIO_EVENTS) {
+    throw new ScenarioValidationError(
+      `$.events contains ${value.length} entries; maximum supported event count is ${MAX_SCENARIO_EVENTS}.`,
+    );
   }
 
   const events = value.map((entry, index): ScenarioEventV1 => {

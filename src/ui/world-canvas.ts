@@ -5,6 +5,7 @@ import type {
   SamplingPresentationState,
   WorldPresentationViewModel,
 } from '../presentation/app-view-model';
+import { recordPresentationTiming } from '../presentation/performance-monitor';
 
 const CELL_SIZE = 16;
 
@@ -142,6 +143,7 @@ export function renderWorld(
   view: WorldPresentationViewModel,
   options: WorldRenderOptions,
 ): void {
+  const startedAt = performance.now();
   const width = view.width * CELL_SIZE;
   const height = view.height * CELL_SIZE;
   if (canvas.width !== width || canvas.height !== height) {
@@ -184,4 +186,11 @@ export function renderWorld(
   for (const marker of view.overlays) {
     drawOverlay(context, marker, options.enabledOverlays);
   }
+
+  const workItems =
+    view.width * view.height +
+    view.overlays.length +
+    view.chunks.length +
+    (view.sampling?.cells.length ?? 0);
+  recordPresentationTiming('world-canvas', performance.now() - startedAt, workItems);
 }

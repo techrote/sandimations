@@ -99,7 +99,7 @@ Initial scenarios should include at least:
 - phased sampler in slow motion;
 - baseline versus phased sampling.
 
-Shareable scenario/state URLs are a planned capability.
+Shareable scenario/state URLs are supported through the versioned canonical URL state used by the scenario experience. Unsupported or truncated state must fail visibly rather than silently changing simulation meaning.
 
 ## Visual semantics
 
@@ -144,6 +144,8 @@ The explanatory UI should consume structured trace/counter data such as:
 - active/sleeping chunk counts.
 
 Future heatmaps, graphs, timelines, or trace inspectors should be addable from the same instrumentation layer.
+
+Wall-clock browser timings are allowed only as separate presentation diagnostics. They must never be mixed into deterministic trace counters, scheduler evidence, replay state, or claims about simulated work.
 
 ## Fidelity and honesty
 

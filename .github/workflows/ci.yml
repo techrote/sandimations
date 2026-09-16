@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies from lockfile
         run: npm ci
 
+      - name: Audit high-severity dependency findings
+        run: npm run audit
+
       - name: Check formatting
         run: npm run format:check
 
@@ -50,3 +53,9 @@ jobs:
 
       - name: Run browser smoke tests
         run: npm run test:e2e
+
+      - name: Build GitHub Pages assets
+        run: npm run build:pages
+
+      - name: Smoke test the GitHub Pages base path
+        run: npm run test:e2e:pages
