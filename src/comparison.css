@@ -1,0 +1,136 @@
+.comparison-shell {
+  width: min(1480px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+}
+
+.comparison-header,
+.comparison-toolbar,
+.comparison-metrics {
+  margin-bottom: 1rem;
+}
+
+.comparison-toolbar,
+.comparison-metrics {
+  padding: 1rem;
+}
+
+.comparison-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.comparison-control-row label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 8rem;
+}
+
+.comparison-control-row input[type='number'] {
+  width: 5.5rem;
+}
+
+.comparison-clock,
+.comparison-provenance,
+.comparison-caveat {
+  color: var(--muted, #b8b9b1);
+  font-size: 0.9rem;
+}
+
+.comparison-worlds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.comparison-world-card {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(233, 236, 225, 0.16);
+  border-radius: 0.6rem;
+  background: rgba(17, 19, 15, 0.72);
+}
+
+.comparison-world-card h2 {
+  margin-top: 0;
+}
+
+.comparison-canvas-frame {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.comparison-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.comparison-worlds[data-view-mode='overlay'] {
+  position: relative;
+  display: block;
+}
+
+.comparison-worlds[data-view-mode='overlay'] .comparison-world-card {
+  width: 100%;
+}
+
+.comparison-worlds[data-view-mode='overlay'] .optimized-world {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: transparent;
+  border-color: transparent;
+}
+
+.comparison-worlds[data-view-mode='overlay'] .optimized-world h2,
+.comparison-worlds[data-view-mode='overlay'] .optimized-world .comparison-provenance {
+  visibility: hidden;
+}
+
+.comparison-worlds[data-view-mode='overlay'] .optimized-world .comparison-canvas {
+  opacity: 0.5;
+}
+
+.comparison-metrics table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comparison-metrics th,
+.comparison-metrics td {
+  padding: 0.45rem 0.6rem;
+  text-align: right;
+  border-bottom: 1px solid rgba(233, 236, 225, 0.1);
+}
+
+.comparison-metrics th:first-child {
+  text-align: left;
+}
+
+.comparison-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.comparison-summary-grid > div {
+  padding: 0.75rem;
+  border: 1px solid rgba(233, 236, 225, 0.12);
+  border-radius: 0.45rem;
+}
+
+@media (max-width: 900px) {
+  .comparison-worlds,
+  .comparison-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-worlds[data-view-mode='overlay'] .optimized-world {
+    position: absolute;
+  }
+}
