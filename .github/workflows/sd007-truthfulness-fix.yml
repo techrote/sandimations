@@ -1,0 +1,104 @@
+name: SD-007 truthfulness fix
+
+on:
+  push:
+    branches:
+      - sd-007-phased-sampling
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: sd-007-phased-sampling
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Make evaluated overlays trace-backed only
+        shell: python
+        run: |
+          from pathlib import Path
+
+          view_path = Path('src/presentation/app-view-model.ts')
+          view = view_path.read_text()
+          old = """  if (sampling?.lastExecutedTick !== null && sampling !== null) {
+            for (const cell of sampling.cells) {
+              if (cell.lastSelectedTick === sampling.lastExecutedTick) {
+                markCell(markers, cell.x, cell.y, 'evaluated-now');
+              }
+            }
+          }
+
+          """
+          if view.count(old) != 1:
+              raise SystemExit('expected sampling-derived evaluated overlay block exactly once')
+          view_path.write_text(view.replace(old, '', 1))
+
+          test_path = Path('tests/unit/app-view-model.test.ts')
+          test = test_path.read_text()
+          anchor = """  it('derives current and pending parameter state from registry metadata and evidence', () => {
+          """
+          addition = """  it('does not present scheduler selection as evaluation when material work is disabled', () => {
+            const registry = createCoreParameterRegistry();
+            const runner = new SimulationRunner(createPhasedSamplingFixtureScenario(), registry);
+            const controller = new SimulationController(runner);
+            const adapter = new PresentationEvidenceAdapterV1(new TeachingModelEvidenceBackendV1(runner));
+
+            controller.requestParameterMutation(CoreParameterId.sandEnabled, false);
+            controller.stepPhase();
+            const evidence = adapter.read();
+            const sampling = evidence.scheduler.sampling;
+            expect(sampling).not.toBeNull();
+            if (sampling == null) {
+              throw new Error('Expected phased sampling evidence.');
+            }
+
+            expect(sampling.selectedCellCount).toBeGreaterThan(0);
+            expect(
+              evidence.traceRecords.filter(
+                (record) => record.tick === sampling.lastExecutedTick && record.type === 'cell-examined',
+              ),
+            ).toHaveLength(0);
+
+            const view = buildAppPresentationViewModel(controller.getViewModel(), evidence, registry);
+            expect(view.world.overlays.filter((marker) => marker.kind === 'evaluated-now')).toHaveLength(0);
+            expect(view.metrics.cells.examined).toBe(0);
+          });
+
+          """
+          if test.count(anchor) != 1:
+              raise SystemExit('expected app-view-model test insertion anchor exactly once')
+          test_path.write_text(test.replace(anchor, addition + anchor, 1))
+
+      - name: Format touched files
+        run: npx prettier --write src/presentation/app-view-model.ts tests/unit/app-view-model.test.ts
+
+      - name: Verify focused change
+        run: |
+          npm run format:check
+          npm run typecheck
+          npm test
+
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/sd007-truthfulness-fix.yml
+
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: keep phased evaluation overlays trace-backed"
+          git push origin HEAD:sd-007-phased-sampling
