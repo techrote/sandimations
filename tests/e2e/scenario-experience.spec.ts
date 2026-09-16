@@ -13,6 +13,7 @@ test.describe('SD-009 scenario experience', () => {
 
     await expect(page.getByTestId('scenario-picker')).toHaveValue('chunk-sleep-wake');
     await expect(page.getByTestId('provenance-scenario')).toHaveText('sd-006-chunk-sleep-wake');
+    await expect(page.getByTestId('tick-count')).toHaveText('0');
     await expect(page).toHaveURL(/scenario=chunk-sleep-wake/);
     await expect(page.getByTestId('timeline-list')).not.toContainText('tick 2');
   });
@@ -44,14 +45,14 @@ test.describe('SD-009 scenario experience', () => {
     page,
   }) => {
     await page.goto('/?v=1&scenario=phased-slow&tick=0&paused=1&speed=50&view=inspect&history=64');
-    await expect(page.getByTestId('timeline-detail')).toHaveValue(
+    await expect(page.getByTestId('timeline-detail')).toHaveText(
       'No trace-backed phase evidence yet.',
     );
 
     await page.getByTestId('step-phase').click();
     await expect(page.getByTestId('timeline-tick-0')).toContainText('frame 0 · phase 1/4 · tick 0');
     await page.getByTestId('timeline-tick-0').click();
-    await expect(page.getByTestId('timeline-detail')).toHaveValue(/frame 0 · phase 1\/4 · tick 0/);
+    await expect(page.getByTestId('timeline-detail')).toHaveText(/frame 0 · phase 1\/4 · tick 0/);
 
     await page.getByTestId('step-phase').click();
     await expect(page.getByTestId('timeline-tick-1')).toContainText('frame 0 · phase 2/4 · tick 1');
@@ -72,7 +73,7 @@ test.describe('SD-009 scenario experience', () => {
 
     await page.getByTestId('presentation-next').click();
     await expect(page.getByTestId('tick-count')).toHaveText('1');
-    await expect(page.getByTestId('presentation-caption')).toHaveValue(/public step command/);
+    await expect(page.getByTestId('presentation-caption')).toHaveText(/public step command/);
   });
 
   test('rejects unsupported share versions without corrupting application state', async ({
