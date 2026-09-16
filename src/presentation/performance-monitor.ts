@@ -58,7 +58,10 @@ export function recordPresentationTiming(
 function percentile95(values: readonly number[]): number {
   if (values.length === 0) return 0;
   const ordered = [...values].sort((left, right) => left - right);
-  const index = Math.min(ordered.length - 1, Math.ceil(ordered.length * 0.95) - 1);
+  const index = Math.min(
+    ordered.length - 1,
+    Math.ceil(ordered.length * 0.95) - 1,
+  );
   return ordered[index] ?? 0;
 }
 
