@@ -1,0 +1,127 @@
+.scenario-experience {
+  display: grid;
+  gap: 1rem;
+}
+
+.scenario-toolbar,
+.scenario-timeline {
+  width: min(1180px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.scenario-toolbar {
+  display: grid;
+  grid-template-columns: minmax(11rem, 18rem) 1fr;
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+.scenario-toolbar > label,
+.timeline-header label,
+.share-row label {
+  font-weight: 700;
+}
+
+.scenario-toolbar select,
+.share-row input,
+.timeline-header select {
+  min-height: 2.4rem;
+}
+
+.scenario-summary {
+  margin: 0;
+  align-self: center;
+}
+
+.scenario-toolbar-actions,
+.share-row {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.demo-caption,
+.share-status {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.share-row input {
+  flex: 1 1 24rem;
+  min-width: 10rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.share-warning {
+  grid-column: 1 / -1;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+}
+
+.scenario-app-host {
+  min-width: 0;
+}
+
+.timeline-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.timeline-header h2 {
+  margin: 0;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.8rem 0;
+  padding: 0;
+  list-style: none;
+  max-height: 19rem;
+  overflow: auto;
+}
+
+.timeline-entry {
+  width: 100%;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.timeline-entry[aria-pressed='true'] {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.timeline-detail {
+  display: block;
+  min-height: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.scenario-experience.is-presentation .scenario-timeline,
+.scenario-experience.is-presentation .scenario-app-host .lower-grid {
+  display: none;
+}
+
+.scenario-experience.is-presentation .scenario-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+@media (max-width: 700px) {
+  .scenario-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .scenario-toolbar-actions,
+  .share-row {
+    grid-column: 1;
+  }
+}
