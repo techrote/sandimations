@@ -96,5 +96,11 @@ test('chunk sleep comparison shows real baseline-relative avoided work', async (
 
   const ratioText = await page.getByTestId('comparison-work-ratio').textContent();
   expect(Number.parseFloat(ratioText ?? 'NaN')).toBeLessThan(100);
-  await expect(page.getByTestId('comparison-divergence-cells')).not.toHaveText('0/640');
+  await expect(page.getByTestId('comparison-divergence-metric')).toHaveText(
+    'cell-material-hamming-v1',
+  );
+  await expect(page.getByTestId('comparison-divergence-cells')).toHaveText('0/640');
+  await expect(page.getByTestId('comparison-caveat')).toContainText(
+    'does not establish physical correctness',
+  );
 });
